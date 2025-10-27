@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -312,32 +313,46 @@
 
         <!-- KPIs -->
         <div class="row">
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <div class="stat-card">
                     <div class="kpi-label">Descargas filtradas</div>
                     <div class="kpi-value" id="kpiDescargas">0</div>
                     <div class="kpi-foot">Filas registradas</div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <div class="stat-card">
                     <div class="kpi-label">Promedio diario</div>
                     <div class="kpi-value" id="kpiPromedioDiario">0</div>
                     <div class="kpi-foot">Descargas / día</div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <div class="stat-card">
                     <div class="kpi-label">Farmacias activas</div>
                     <div class="kpi-value" id="kpiFarmaciasActivas">0</div>
                     <div class="kpi-foot">en rango filtrado</div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <div class="stat-card">
                     <div class="kpi-label">Total de kits</div>
                     <div class="kpi-value" id="kpiTotalKits">0</div>
                     <div class="kpi-foot">unidades consumidas</div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="stat-card">
+                    <div class="kpi-label">Cirugías estimadas</div>
+                    <div class="kpi-value" id="kpiCirugias">0</div>
+                    <div class="kpi-foot">de observaciones</div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="stat-card">
+                    <div class="kpi-label">Kits por cirugía</div>
+                    <div class="kpi-value" id="kpiKitsPorCirugia">0</div>
+                    <div class="kpi-foot">eficiencia promedio</div>
                 </div>
             </div>
         </div>
@@ -362,17 +377,32 @@
             <!-- OVERVIEW -->
             <div class="tab-pane fade show active" id="overview" role="tabpanel">
                 <div class="row">
-                    <div class="col-md-12">
+                    <div class="col-md-6">
                         <div class="card">
                             <div class="card-header">
-                                <h5>Descargas por día y farmacia</h5>
+                                <h5>Consumo de kits por día y farmacia</h5>
                             </div>
                             <div class="card-body">
                                 <div class="chart-container">
                                     <canvas id="chartDiaFarmacia"></canvas>
                                 </div>
                                 <div class="chart-note">
-                                    Métrica: número de registros (descargas de kits) por Fecha y Farmacia/Almacén.
+                                    Métrica: suma de cantidades de kits consumidos por Fecha y Farmacia/Almacén. Se corrigió para sumar cantidades en lugar de contar filas, evitando inflar por duplicados.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Actividad por hora del día</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="chartHoraActividad"></canvas>
+                                </div>
+                                <div class="chart-note">
+                                    Métrica: suma de cantidades de kits por hora del día (basado en Timestamp). Identifica picos de actividad para optimizar recursos.
                                 </div>
                             </div>
                         </div>
@@ -383,11 +413,14 @@
                     <div class="col-md-6">
                         <div class="card">
                             <div class="card-header">
-                                <h5>Registros por Turno</h5>
+                                <h5>Consumo por Turno</h5>
                             </div>
                             <div class="card-body">
                                 <div class="chart-container">
                                     <canvas id="turnoChart"></canvas>
+                                </div>
+                                <div class="chart-note">
+                                    Métrica corregida: suma de cantidades en lugar de conteo de registros para reflejar consumo real.
                                 </div>
                             </div>
                         </div>
@@ -395,11 +428,14 @@
                     <div class="col-md-6">
                         <div class="card">
                             <div class="card-header">
-                                <h5>Distribución por Tipo</h5>
+                                <h5>Distribución por Tipo de Profesional</h5>
                             </div>
                             <div class="card-body">
                                 <div class="chart-container">
                                     <canvas id="tipoChart"></canvas>
+                                </div>
+                                <div class="chart-note">
+                                    Métrica: suma de cantidades por tipo (Anestesiólogo/Circulante). Corregido para enfocarse en consumo.
                                 </div>
                             </div>
                         </div>
@@ -413,11 +449,14 @@
                     <div class="col-md-6">
                         <div class="card">
                             <div class="card-header">
-                                <h5>Anestesiólogos Más Activos</h5>
+                                <h5>Anestesiólogos con Mayor Consumo</h5>
                             </div>
                             <div class="card-body">
                                 <div class="chart-container">
                                     <canvas id="topAnestesiologosChart"></canvas>
+                                </div>
+                                <div class="chart-note">
+                                    Métrica corregida: suma de cantidades de kits en lugar de conteo de registros.
                                 </div>
                             </div>
                         </div>
@@ -425,11 +464,14 @@
                     <div class="col-md-6">
                         <div class="card">
                             <div class="card-header">
-                                <h5>Circulantes Más Activos</h5>
+                                <h5>Circulantes con Mayor Consumo</h5>
                             </div>
                             <div class="card-body">
                                 <div class="chart-container">
                                     <canvas id="topCirculantesChart"></canvas>
+                                </div>
+                                <div class="chart-note">
+                                    Métrica corregida: suma de cantidades de kits en lugar de conteo de registros.
                                 </div>
                             </div>
                         </div>
@@ -437,14 +479,32 @@
                 </div>
                 <!-- Distribución por Quirófano -->
                 <div class="row">
-                    <div class="col-md-12">
+                    <div class="col-md-6">
                         <div class="card">
                             <div class="card-header">
                                 <h5>Distribución de Personal por Quirófano</h5>
                             </div>
                             <div class="card-body">
                                 <div class="chart-container">
-                                    <canvas id="personalQuirfanoChart"></canvas>
+                                    <canvas id="personalQuirofanoChart"></canvas>
+                                </div>
+                                <div class="chart-note">
+                                    Métrica: conteo de asignaciones únicas por quirófano y tipo. Corregido normalizando nombres de quirófanos.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Ratio Anestesiólogos vs Circulantes</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="ratioPersonalChart"></canvas>
+                                </div>
+                                <div class="chart-note">
+                                    Nueva métrica: ratio de consumo de kits entre tipos de personal por día. Ayuda a detectar desequilibrios en equipos.
                                 </div>
                             </div>
                         </div>
@@ -458,11 +518,14 @@
                     <div class="col-md-6">
                         <div class="card">
                             <div class="card-header">
-                                <h5>Kits Más Utilizados</h5>
+                                <h5>Kits Más Consumidos</h5>
                             </div>
                             <div class="card-body">
                                 <div class="chart-container">
                                     <canvas id="topKitsChart"></canvas>
+                                </div>
+                                <div class="chart-note">
+                                    Métrica: suma de cantidades por nombre de kit. Corregido para excluir entradas inválidas como "*".
                                 </div>
                             </div>
                         </div>
@@ -470,11 +533,14 @@
                     <div class="col-md-6">
                         <div class="card">
                             <div class="card-header">
-                                <h5>Cantidad Total de Kits por Tipo</h5>
+                                <h5>Consumo Total de Kits por Tipo</h5>
                             </div>
                             <div class="card-body">
                                 <div class="chart-container">
                                     <canvas id="kitsCantidadChart"></canvas>
+                                </div>
+                                <div class="chart-note">
+                                    Métrica: suma de cantidades por tipo de profesional. Corregido para reflejar consumo real.
                                 </div>
                             </div>
                         </div>
@@ -482,14 +548,32 @@
                 </div>
                 <!-- Distribución por Quirófano -->
                 <div class="row">
-                    <div class="col-md-12">
+                    <div class="col-md-6">
                         <div class="card">
                             <div class="card-header">
                                 <h5>Distribución de Kits por Quirófano</h5>
                             </div>
                             <div class="card-body">
                                 <div class="chart-container">
-                                    <canvas id="kitsQuirfanoChart"></canvas>
+                                    <canvas id="kitsQuirofanoChart"></canvas>
+                                </div>
+                                <div class="chart-note">
+                                    Métrica: suma de cantidades por quirófano. Corregido normalizando nombres (ej. Q1, Q2).
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Tendencia Mensual de Consumo de Kits</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="kitsTendenciaChart"></canvas>
+                                </div>
+                                <div class="chart-note">
+                                    Nueva métrica: suma mensual de kits consumidos. Identifica tendencias estacionales o crecimientos.
                                 </div>
                             </div>
                         </div>
@@ -527,7 +611,7 @@
                             </table>
                         </div>
                         <div class="footnote">
-                            Muestra hasta 100 filas más recientes según filtros aplicados.
+                            Muestra hasta 100 filas más recientes según filtros aplicados. Fechas corregidas de serial Excel a formato legible.
                         </div>
                     </div>
                 </div>
@@ -565,29 +649,46 @@ let currentToken = null;
 // Utilidades de datos
 // ======================================================================
 
-function toISO(dateStr) {
-  if (!dateStr) return null;
-  // formato dd/mm/yyyy
-  const m = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (m) {
-    const dd = m[1], mm = m[2], yyyy = m[3];
-    return `${yyyy}-${mm}-${dd}`;
-  }
-  // fallback genérico
-  const dObj = new Date(dateStr);
-  if (!isNaN(dObj.getTime())) {
-    const dd2 = String(dObj.getDate()).padStart(2,"0");
-    const mm2 = String(dObj.getMonth()+1).padStart(2,"0");
-    const yyyy2 = dObj.getFullYear();
-    return `${yyyy2}-${mm2}-${dd2}`;
-  }
-  return null;
+function excelSerialToDate(serial) {
+  if (typeof serial !== 'number' || isNaN(serial)) return null;
+  const days = Math.floor(serial) - 25569;
+  const frac = serial - Math.floor(serial);
+  const ms = (days + frac) * 86400 * 1000;
+  return new Date(ms);
 }
 
-function normalizeQuirfano(q) {
-  if (!q) return "";
+function serialToISO(serial) {
+  const date = excelSerialToDate(serial);
+  if (!date || isNaN(date.getTime())) return null;
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function formatDate(serial) {
+  const iso = serialToISO(serial);
+  if (!iso) return "";
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function formatDatetime(dt) {
+  if (!dt || isNaN(dt.getTime())) return "";
+  const dd = String(dt.getDate()).padStart(2, '0');
+  const mm = String(dt.getMonth() + 1).padStart(2, '0');
+  const yy = dt.getFullYear();
+  const hh = String(dt.getHours()).padStart(2, '0');
+  const mi = String(dt.getMinutes()).padStart(2, '0');
+  const ss = String(dt.getSeconds()).padStart(2, '0');
+  return `${dd}/${mm}/${yy} ${hh}:${mi}:${ss}`;
+}
+
+function normalizeQuirofano(q) {
+  if (!q) return "Sin asignar";
+  q = String(q).trim().toUpperCase();
+  if (/^Q\d+$/.test(q)) return q;
   if (/^\d+$/.test(q)) return "Q" + q;
-  if (/^Q\d+$/i.test(q)) return q;
   return q;
 }
 
@@ -595,17 +696,6 @@ function toNumber(x) {
   if (x == null || x === "") return 0;
   const n = Number(String(x).replace(",", "."));
   return Number.isFinite(n) ? n : 0;
-}
-
-function parseTS(ts) {
-  if (!ts) return null;
-  const parts = ts.split(" ");
-  const baseISO = toISO(parts[0] || "");
-  if (!baseISO) return null;
-  const hhmmss = parts[1] ? parts[1] : "00:00:00";
-  const d = new Date(baseISO + "T" + hhmmss);
-  if (isNaN(d.getTime())) return null;
-  return d;
 }
 
 // ======================================================================
@@ -640,24 +730,32 @@ function showLoginError(msg) {
 
 function calcKPIs(data) {
   const total = data.length;
-  const unidades = data.reduce((acc, r) => acc + (r.Cantidad_num || 0), 0);
+  const unidades = data.reduce((acc, r) => acc + r.Cantidad_num, 0);
   const farmSet = new Set(data.map(r => r.Farmacia));
-  const nFarm   = farmSet.size;
+  const nFarm = farmSet.size;
 
-  const diasSet = new Set(
-    data.map(r => r.Fecha_iso).filter(d => !!d)
-  );
-  const nDias   = diasSet.size || 1;
-  const prom    = total / nDias;
+  const diasSet = new Set(data.map(r => r.Fecha_iso).filter(d => d));
+  const nDias = diasSet.size || 1;
+  const prom = unidades / nDias; // Cambiado a promedio de unidades
 
-  return { total, unidades, nFarm, prom };
+  let cirugias = 0;
+  data.forEach(r => {
+    const m = (r.Observaciones || "").match(/TOTAL CIRUGÍAS: (\d+)/i);
+    if (m) cirugias += parseInt(m[1], 10);
+  });
+
+  const kitsPorCirugia = cirugias > 0 ? (unidades / cirugias).toFixed(2) : 0;
+
+  return { total, unidades, nFarm, prom, cirugias, kitsPorCirugia };
 }
 
 function renderKPIs(k) {
-  document.getElementById("kpiDescargas").textContent        = k.total.toLocaleString("es-PY");
-  document.getElementById("kpiPromedioDiario").textContent    = k.prom.toFixed(2);
-  document.getElementById("kpiFarmaciasActivas").textContent  = k.nFarm.toLocaleString("es-PY");
-  document.getElementById("kpiTotalKits").textContent         = k.unidades.toLocaleString("es-PY");
+  document.getElementById("kpiDescargas").textContent = k.total.toLocaleString("es-PY");
+  document.getElementById("kpiPromedioDiario").textContent = k.prom.toFixed(2);
+  document.getElementById("kpiFarmaciasActivas").textContent = k.nFarm.toLocaleString("es-PY");
+  document.getElementById("kpiTotalKits").textContent = k.unidades.toLocaleString("es-PY");
+  document.getElementById("kpiCirugias").textContent = k.cirugias.toLocaleString("es-PY");
+  document.getElementById("kpiKitsPorCirugia").textContent = k.kitsPorCirugia;
 }
 
 // ======================================================================
@@ -676,17 +774,15 @@ function createChartDiaFarmacia() {
     if (!r.Fecha_iso || !r.Farmacia) return;
     if (!M[r.Fecha_iso]) M[r.Fecha_iso] = {};
     if (!M[r.Fecha_iso][r.Farmacia]) M[r.Fecha_iso][r.Farmacia] = 0;
-    M[r.Fecha_iso][r.Farmacia] += 1;
+    M[r.Fecha_iso][r.Farmacia] += r.Cantidad_num;
   });
 
   const fechas = Object.keys(M).sort();
-  const farmCodes = [...new Set(
-    fechas.flatMap(F => Object.keys(M[F]))
-  )].sort();
+  const farmCodes = [...new Set(fechas.flatMap(F => Object.keys(M[F])))].sort();
 
   const labels = fechas.map(F => {
-    const [y,m,d] = F.split("-");
-    return d + "/" + m + "/" + y;
+    const [y, m, d] = F.split("-");
+    return `${d}/${m}/${y}`;
   });
 
   const datasets = farmCodes.map(code => {
@@ -711,13 +807,43 @@ function createChartDiaFarmacia() {
         legend: { position: "bottom" },
         tooltip: {
           callbacks: {
-            label: c => `${c.dataset.label}: ${c.parsed.y} descargas`
+            label: c => `${c.dataset.label}: ${c.parsed.y} unidades`
           }
         }
       },
       scales: {
         x: { title: { display: true, text: "Fecha" } },
-        y: { beginAtZero: true, title: { display: true, text: "Descargas" } }
+        y: { beginAtZero: true, title: { display: true, text: "Unidades Consumidas" } }
+      }
+    }
+  });
+}
+
+function createChartHoraActividad() {
+  const ctx = document.getElementById("chartHoraActividad").getContext("2d");
+  const horas = Array(24).fill(0);
+  filteredData.forEach(r => {
+    if (r.Timestamp_obj) {
+      const h = r.Timestamp_obj.getHours();
+      horas[h] += r.Cantidad_num;
+    }
+  });
+
+  charts.chartHoraActividad = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: Array.from({length: 24}, (_, i) => `${i}:00`),
+      datasets: [{
+        label: "Unidades Consumidas",
+        data: horas,
+        backgroundColor: "rgba(54, 162, 235, 0.7)"
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { beginAtZero: true }
       }
     }
   });
@@ -728,7 +854,7 @@ function createTurnoChart() {
   const turnoData = {};
   filteredData.forEach(r => {
     if (r.Turno) {
-      turnoData[r.Turno] = (turnoData[r.Turno] || 0) + 1;
+      turnoData[r.Turno] = (turnoData[r.Turno] || 0) + r.Cantidad_num;
     }
   });
 
@@ -741,7 +867,8 @@ function createTurnoChart() {
         backgroundColor: [
           "rgba(255, 99, 132, 0.7)",
           "rgba(54, 162, 235, 0.7)",
-          "rgba(255, 206, 86, 0.7)"
+          "rgba(255, 206, 86, 0.7)",
+          "rgba(75, 192, 192, 0.7)"
         ]
       }]
     },
@@ -757,7 +884,7 @@ function createTipoChart() {
   const tipoData = {};
   filteredData.forEach(r => {
     if (r.Tipo) {
-      tipoData[r.Tipo] = (tipoData[r.Tipo] || 0) + 1;
+      tipoData[r.Tipo] = (tipoData[r.Tipo] || 0) + r.Cantidad_num;
     }
   });
 
@@ -788,7 +915,7 @@ function createTopAnestesiologosChart() {
     .filter(r => r.Tipo === "Anestesiólogo")
     .forEach(r => {
       if (r.Nombre) {
-        anestData[r.Nombre] = (anestData[r.Nombre] || 0) + 1;
+        anestData[r.Nombre] = (anestData[r.Nombre] || 0) + r.Cantidad_num;
       }
     });
 
@@ -801,7 +928,7 @@ function createTopAnestesiologosChart() {
     data: {
       labels: top.map(x => x[0]),
       datasets: [{
-        label: "Registros",
+        label: "Unidades Consumidas",
         data: top.map(x => x[1]),
         backgroundColor: "rgba(54, 162, 235, 0.7)",
         borderColor:   "rgba(54, 162, 235, 1)",
@@ -827,7 +954,7 @@ function createTopCirculantesChart() {
     .filter(r => r.Tipo === "Circulante")
     .forEach(r => {
       if (r.Nombre) {
-        circData[r.Nombre] = (circData[r.Nombre] || 0) + 1;
+        circData[r.Nombre] = (circData[r.Nombre] || 0) + r.Cantidad_num;
       }
     });
 
@@ -840,7 +967,7 @@ function createTopCirculantesChart() {
     data: {
       labels: top.map(x => x[0]),
       datasets: [{
-        label: "Registros",
+        label: "Unidades Consumidas",
         data: top.map(x => x[1]),
         backgroundColor: "rgba(75, 192, 192, 0.7)",
         borderColor:   "rgba(75, 192, 192, 1)",
@@ -858,44 +985,84 @@ function createTopCirculantesChart() {
   });
 }
 
-function createPersonalQuirfanoChart() {
-  const ctx = document.getElementById("personalQuirfanoChart").getContext("2d");
+function createPersonalQuirofanoChart() {
+  const ctx = document.getElementById("personalQuirofanoChart").getContext("2d");
   const M = {};
   filteredData.forEach(r => {
-    const q  = r.Quirofano || "Sin asignar";
+    const q = r.Quirofano;
     const tp = r.Tipo || "Sin tipo";
-    if (!M[q]) {
-      M[q] = { "Anestesiólogo":0, "Circulante":0 };
-    }
-    if (tp in M[q]) {
-      M[q][tp] += 1;
-    }
+    if (!M[q]) M[q] = { "Anestesiólogo": 0, "Circulante": 0 };
+    if (tp in M[q]) M[q][tp] += 1;
   });
 
-  const quirfanos = Object.keys(M);
-  const anestArr  = quirfanos.map(q => M[q]["Anestesiólogo"]);
-  const circArr   = quirfanos.map(q => M[q]["Circulante"]);
+  const quirofanos = Object.keys(M).sort();
+  const anestArr = quirofanos.map(q => M[q]["Anestesiólogo"]);
+  const circArr = quirofanos.map(q => M[q]["Circulante"]);
 
-  charts.personalQuirfanoChart = new Chart(ctx, {
+  charts.personalQuirofanoChart = new Chart(ctx, {
     type: "bar",
     data: {
-      labels: quirfanos,
+      labels: quirofanos,
       datasets: [
         {
           label: "Anestesiólogos",
           data: anestArr,
           backgroundColor: "rgba(153, 102, 255, 0.7)",
-          borderColor:     "rgba(153, 102, 255, 1)",
+          borderColor: "rgba(153, 102, 255, 1)",
           borderWidth: 1
         },
         {
           label: "Circulantes",
           data: circArr,
           backgroundColor: "rgba(255, 159, 64, 0.7)",
-          borderColor:     "rgba(255, 159, 64, 1)",
+          borderColor: "rgba(255, 159, 64, 1)",
           borderWidth: 1
         }
       ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+}
+
+function createRatioPersonalChart() {
+  const ctx = document.getElementById("ratioPersonalChart").getContext("2d");
+  const M = {};
+  filteredData.forEach(r => {
+    if (!r.Fecha_iso) return;
+    if (!M[r.Fecha_iso]) M[r.Fecha_iso] = { anest: 0, circ: 0 };
+    if (r.Tipo === "Anestesiólogo") M[r.Fecha_iso].anest += r.Cantidad_num;
+    if (r.Tipo === "Circulante") M[r.Fecha_iso].circ += r.Cantidad_num;
+  });
+
+  const fechas = Object.keys(M).sort();
+  const ratios = fechas.map(F => {
+    const a = M[F].anest;
+    const c = M[F].circ;
+    return c > 0 ? (a / c) : 0;
+  });
+
+  const labels = fechas.map(F => {
+    const [y, m, d] = F.split("-");
+    return `${d}/${m}/${y}`;
+  });
+
+  charts.ratioPersonalChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: "Ratio Anest/Circ (consumo)",
+        data: ratios,
+        borderColor: "rgba(255, 99, 132, 1)",
+        backgroundColor: "rgba(255, 99, 132, 0.2)",
+        fill: true
+      }]
     },
     options: {
       responsive: true,
@@ -913,7 +1080,7 @@ function createTopKitsChart() {
   filteredData.forEach(r => {
     const kit = r.Nombre_kit;
     if (kit && kit !== "*") {
-      kitsData[kit] = (kitsData[kit] || 0) + (r.Cantidad_num || 0);
+      kitsData[kit] = (kitsData[kit] || 0) + r.Cantidad_num;
     }
   });
 
@@ -926,7 +1093,7 @@ function createTopKitsChart() {
     data: {
       labels: top.map(x => x[0]),
       datasets: [{
-        label: "Cantidad",
+        label: "Unidades Consumidas",
         data: top.map(x => x[1]),
         backgroundColor: "rgba(255, 99, 132, 0.7)",
         borderColor:   "rgba(255, 99, 132, 1)",
@@ -949,7 +1116,7 @@ function createKitsCantidadChart() {
   const sumTipo = {};
   filteredData.forEach(r => {
     const tp = r.Tipo || "Sin tipo";
-    sumTipo[tp] = (sumTipo[tp] || 0) + (r.Cantidad_num || 0);
+    sumTipo[tp] = (sumTipo[tp] || 0) + r.Cantidad_num;
   });
 
   charts.kitsCantidadChart = new Chart(ctx, {
@@ -971,21 +1138,21 @@ function createKitsCantidadChart() {
   });
 }
 
-function createKitsQuirfanoChart() {
-  const ctx = document.getElementById("kitsQuirfanoChart").getContext("2d");
+function createKitsQuirofanoChart() {
+  const ctx = document.getElementById("kitsQuirofanoChart").getContext("2d");
   const sumQ = {};
   filteredData.forEach(r => {
-    const q = r.Quirofano || "Sin asignar";
-    sumQ[q] = (sumQ[q] || 0) + (r.Cantidad_num || 0);
+    const q = r.Quirofano;
+    sumQ[q] = (sumQ[q] || 0) + r.Cantidad_num;
   });
 
   const sortedQ = Object.entries(sumQ).sort((a,b)=>b[1]-a[1]);
-  charts.kitsQuirfanoChart = new Chart(ctx, {
+  charts.kitsQuirofanoChart = new Chart(ctx, {
     type:"bar",
     data:{
       labels:sortedQ.map(x=>x[0]),
       datasets:[{
-        label:"Cantidad de Kits",
+        label:"Unidades de Kits",
         data:sortedQ.map(x=>x[1]),
         backgroundColor:"rgba(75, 192, 192, 0.7)",
         borderColor:"rgba(75, 192, 192, 1)",
@@ -1002,6 +1169,40 @@ function createKitsQuirfanoChart() {
   });
 }
 
+function createKitsTendenciaChart() {
+  const ctx = document.getElementById("kitsTendenciaChart").getContext("2d");
+  const M = {};
+  filteredData.forEach(r => {
+    if (!r.Fecha_iso) return;
+    const mes = r.Fecha_iso.slice(0, 7); // YYYY-MM
+    M[mes] = (M[mes] || 0) + r.Cantidad_num;
+  });
+
+  const meses = Object.keys(M).sort();
+  const data = meses.map(m => M[m]);
+
+  charts.kitsTendenciaChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: meses,
+      datasets: [{
+        label: "Unidades Mensuales",
+        data,
+        borderColor: "rgba(54, 162, 235, 1)",
+        backgroundColor: "rgba(54, 162, 235, 0.2)",
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+}
+
 // ======================================================================
 // Tabla
 // ======================================================================
@@ -1010,16 +1211,13 @@ function updateDataTable() {
   const tb = document.getElementById("dataTableBody");
   tb.innerHTML = "";
 
-  // ordenar por timestamp desc
-  const sorted = [...filteredData].sort((a,b)=>{
-    return (b.Timestamp_obj||0) - (a.Timestamp_obj||0);
-  });
+  const sorted = [...filteredData].sort((a,b) => (b.Timestamp_obj?.getTime() || 0) - (a.Timestamp_obj?.getTime() || 0));
 
-  const top100 = sorted.slice(0,100);
+  const top100 = sorted.slice(0, 100);
   top100.forEach(r => {
     const tr = document.createElement("tr");
     const cols = [
-      r.Fecha,
+      r.Fecha_formatted,
       r.Farmacia,
       r.Turno,
       r.Tipo,
@@ -1028,12 +1226,12 @@ function updateDataTable() {
       r.Nombre_kit,
       r.Cantidad,
       r.Usuario,
-      r.Timestamp
+      r.Timestamp_formatted
     ];
-    cols.forEach((val, idx)=>{
+    cols.forEach((val, idx) => {
       const td = document.createElement("td");
       td.textContent = val || "";
-      if (idx === 7) { td.style.textAlign = "right"; } // Cantidad
+      if (idx === 7) td.style.textAlign = "right";
       tr.appendChild(td);
     });
     tb.appendChild(tr);
@@ -1046,11 +1244,8 @@ function updateDataTable() {
 
 function populateFilters() {
   const sel = document.getElementById("filtroFarmacia");
-  // limpiar excepto "Todas"
-  while (sel.options.length > 1) {
-    sel.remove(1);
-  }
-  const farms = [...new Set(originalData.map(r => r.Farmacia).filter(f=>f))];
+  while (sel.options.length > 1) sel.remove(1);
+  const farms = [...new Set(originalData.map(r => r.Farmacia).filter(f => f))];
   farms.sort().forEach(f => {
     const opt = document.createElement("option");
     opt.value = f;
@@ -1075,10 +1270,9 @@ function applyFilters() {
 }
 
 function resetFilters() {
-  document.getElementById("filtroDesde").value    = "";
-  document.getElementById("filtroHasta").value    = "";
+  document.getElementById("filtroDesde").value = "";
+  document.getElementById("filtroHasta").value = "";
   document.getElementById("filtroFarmacia").value = "__ALL__";
-
   filteredData = [...originalData];
   refreshDashboard();
 }
@@ -1093,19 +1287,18 @@ function exportData() {
     return;
   }
   const headers = Object.keys(filteredData[0]);
-  const csvLines = [];
-  csvLines.push(headers.join(","));
+  const csvLines = [headers.join(",")];
   filteredData.forEach(row => {
     const line = headers.map(h => {
       const v = row[h] == null ? "" : String(row[h]);
-      return `"${v.replace(/"/g,'""')}"`;
+      return `"${v.replace(/"/g, '""')}"`;
     }).join(",");
     csvLines.push(line);
   });
-  const blob = new Blob([csvLines.join("\n")], {type:"text/csv"});
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
-  a.href     = url;
+  const blob = new Blob([csvLines.join("\n")], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
   a.download = "datos_quirofanos.csv";
   document.body.appendChild(a);
   a.click();
@@ -1117,61 +1310,62 @@ function exportData() {
 // Backend interacciones
 // ======================================================================
 
-// Cargar datos protegidos desde Apps Script
 function loadDataFromServer() {
   showLoading();
   google.script.run
-    .withSuccessHandler(function(rows){
-      // rows = arreglo de objetos {Fecha, Farmacia, Turno, ...}
+    .withSuccessHandler(function(rows) {
       originalData = rows.map(r => {
-        const Fecha_iso     = toISO(r.Fecha);
-        const Cantidad_num  = toNumber(r.Cantidad);
-        const Timestamp_obj = parseTS(r.Timestamp);
+        const Fecha_iso = serialToISO(r.Fecha);
+        const Fecha_formatted = formatDate(r.Fecha);
+        const Cantidad_num = toNumber(r.Cantidad);
+        const Timestamp_obj = excelSerialToDate(r.Timestamp);
+        const Timestamp_formatted = formatDatetime(Timestamp_obj);
+        const Quirofano = normalizeQuirofano(r["Quirófano Nro"]);
 
         return {
-          Fecha:        r.Fecha || "",
-          Fecha_iso:    Fecha_iso,
-          Farmacia:     r.Farmacia || "",
-          Turno:        r.Turno || "",
-          Tipo:         r.Tipo || "",
-          Nombre:       r.Nombre || "",
-          Quirofano:    normalizeQuirfano(r["Quirófano Nro"] || ""),
-          Nombre_kit:   r.Nombre_kit || "",
-          Cantidad:     r.Cantidad || "",
-          Cantidad_num: Cantidad_num,
-          Usuario:      r.Usuario || "",
-          Timestamp:    r.Timestamp || "",
-          Timestamp_obj: Timestamp_obj
+          Fecha: r.Fecha || "",
+          Fecha_iso,
+          Fecha_formatted,
+          Farmacia: r.Farmacia || "",
+          Turno: r.Turno || "",
+          Tipo: r.Tipo || "",
+          Nombre: r.Nombre || "",
+          Quirofano,
+          Codigo_kit: r.Codigo_kit || "",
+          Nombre_kit: r.Nombre_kit || "",
+          Cantidad: r.Cantidad || "",
+          Cantidad_num,
+          Observaciones: r.Observaciones || "",
+          Usuario: r.Usuario || "",
+          Timestamp: r.Timestamp || "",
+          Timestamp_formatted,
+          Timestamp_obj
         };
       });
 
       filteredData = [...originalData];
-
       populateFilters();
       refreshDashboard();
-
       hideLoading();
     })
-    .withFailureHandler(function(err){
+    .withFailureHandler(function(err) {
       console.error("Error getDataSecure:", err);
       hideLoading();
       alert("Sesión inválida o expirada. Vuelva a iniciar sesión.");
-      // volver a login
-      currentUser  = null;
+      currentUser = null;
       currentToken = null;
       showLoginScreen();
     })
-    .getDataSecure(currentToken); // llama Code.gs/getDataSecure(token)
+    .getDataSecure(currentToken);
 }
 
-// Login seguro contra Apps Script
 function doLogin(username, password) {
   showLoading();
   google.script.run
-    .withSuccessHandler(function(resp){
+    .withSuccessHandler(function(resp) {
       hideLoading();
       if (resp && resp.ok) {
-        currentUser  = resp.user;
+        currentUser = resp.user;
         currentToken = resp.token;
         document.getElementById("activeUser").textContent = currentUser;
         showDashboardScreen();
@@ -1180,17 +1374,16 @@ function doLogin(username, password) {
         showLoginError(resp && resp.msg ? resp.msg : "Error de autenticación");
       }
     })
-    .withFailureHandler(function(err){
+    .withFailureHandler(function(err) {
       hideLoading();
       console.error("loginAPI error:", err);
       showLoginError("No se pudo autenticar. Intente de nuevo.");
     })
-    .loginAPI(username, password); // Code.gs/loginAPI
+    .loginAPI(username, password);
 }
 
-// Cerrar sesión (simplemente limpiar estado local)
 function doLogout() {
-  currentUser  = null;
+  currentUser = null;
   currentToken = null;
   showLoginScreen();
 }
@@ -1200,23 +1393,23 @@ function doLogout() {
 // ======================================================================
 
 function refreshDashboard() {
-  // KPIs
   const k = calcKPIs(filteredData);
   renderKPIs(k);
 
-  // Gráficos
   destroyCharts();
   createChartDiaFarmacia();
+  createChartHoraActividad();
   createTurnoChart();
   createTipoChart();
   createTopAnestesiologosChart();
   createTopCirculantesChart();
-  createPersonalQuirfanoChart();
+  createPersonalQuirofanoChart();
+  createRatioPersonalChart();
   createTopKitsChart();
   createKitsCantidadChart();
-  createKitsQuirfanoChart();
+  createKitsQuirofanoChart();
+  createKitsTendenciaChart();
 
-  // Tabla
   updateDataTable();
 }
 
@@ -1224,10 +1417,8 @@ function refreshDashboard() {
 // Init al cargar DOM
 // ======================================================================
 
-document.addEventListener("DOMContentLoaded", function(){
-
-  // listeners UI
-  document.getElementById("loginForm").addEventListener("submit", function(ev){
+document.addEventListener("DOMContentLoaded", function() {
+  document.getElementById("loginForm").addEventListener("submit", function(ev) {
     ev.preventDefault();
     const u = document.getElementById("usuario").value.trim().toLowerCase();
     const p = document.getElementById("codigo").value.trim();
@@ -1241,16 +1432,13 @@ document.addEventListener("DOMContentLoaded", function(){
   document.getElementById("exportData").addEventListener("click", exportData);
   document.getElementById("logoutBtn").addEventListener("click", doLogout);
 
-  // flujo inicial según lo que inyectó Code.gs
   if (AUTH_OK_INIT && SESSION_TOKEN) {
-    // ya hay sesión válida
-    currentUser  = INITIAL_USER || "";
+    currentUser = INITIAL_USER || "";
     currentToken = SESSION_TOKEN || "";
     document.getElementById("activeUser").textContent = currentUser;
     showDashboardScreen();
     loadDataFromServer();
   } else {
-    // no hay sesión todavía
     showLoginScreen();
   }
 });
@@ -1258,3 +1446,4 @@ document.addEventListener("DOMContentLoaded", function(){
 
 </body>
 </html>
+```

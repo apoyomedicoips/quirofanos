@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tablero de Quirófanos - Ministerio de Trabajo</title>
+    <title>Tablero de Quirófanos - Instituto de Previsión Social</title>
 
     <!-- Bootstrap y dependencias visuales -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -223,6 +223,10 @@
             color: var(--text-dim);
             margin-top: 0.5rem;
         }
+        .info-icon {
+            cursor: pointer;
+            margin-left: 5px;
+        }
     </style>
 </head>
 <body>
@@ -249,7 +253,7 @@
         </form>
 
         <div class="user-info mt-4 text-center">
-            Acceso restringido. Ministerio de Trabajo, Empleo y Seguridad Social.<br>
+            Acceso restringido. Instituto de Previsión Social.<br>
             Área de Apoyo Médico IPS.
         </div>
     </div>
@@ -262,7 +266,7 @@
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="mb-1">
-                        <i class="bi bi-graph-up"></i> Tablero de Consumo de Kits en Quirófano
+                        <i class="bi bi-graph-up"></i> Tablero de Consumo de Kits en Quirófano - Instituto de Previsión Social
                     </h1>
                     <div class="user-info">
                         Usuario activo: <span id="activeUser"></span><br>
@@ -314,42 +318,42 @@
         <div class="row">
             <div class="col-md-2">
                 <div class="stat-card">
-                    <div class="kpi-label">Descargas filtradas</div>
+                    <div class="kpi-label">Descargas filtradas<i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" data-bs-title="Número total de registros de descargas en el periodo filtrado."></i></div>
                     <div class="kpi-value" id="kpiDescargas">0</div>
                     <div class="kpi-foot">Filas registradas</div>
                 </div>
             </div>
             <div class="col-md-2">
                 <div class="stat-card">
-                    <div class="kpi-label">Promedio diario</div>
+                    <div class="kpi-label">Promedio diario<i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" data-bs-title="Promedio de unidades de kits consumidas por día en el periodo filtrado."></i></div>
                     <div class="kpi-value" id="kpiPromedioDiario">0</div>
-                    <div class="kpi-foot">Descargas / día</div>
+                    <div class="kpi-foot">Unidades / día</div>
                 </div>
             </div>
             <div class="col-md-2">
                 <div class="stat-card">
-                    <div class="kpi-label">Farmacias activas</div>
+                    <div class="kpi-label">Farmacias activas<i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" data-bs-title="Número de farmacias o almacenes con actividad en el rango filtrado."></i></div>
                     <div class="kpi-value" id="kpiFarmaciasActivas">0</div>
                     <div class="kpi-foot">en rango filtrado</div>
                 </div>
             </div>
             <div class="col-md-2">
                 <div class="stat-card">
-                    <div class="kpi-label">Total de kits</div>
+                    <div class="kpi-label">Total de kits<i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" data-bs-title="Suma total de unidades de kits consumidas."></i></div>
                     <div class="kpi-value" id="kpiTotalKits">0</div>
                     <div class="kpi-foot">unidades consumidas</div>
                 </div>
             </div>
             <div class="col-md-2">
                 <div class="stat-card">
-                    <div class="kpi-label">Cirugías estimadas</div>
+                    <div class="kpi-label">Cirugías estimadas<i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" data-bs-title="Estimación de cirugías basadas en observaciones."></i></div>
                     <div class="kpi-value" id="kpiCirugias">0</div>
                     <div class="kpi-foot">de observaciones</div>
                 </div>
             </div>
             <div class="col-md-2">
                 <div class="stat-card">
-                    <div class="kpi-label">Kits por cirugía</div>
+                    <div class="kpi-label">Kits por cirugía<i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" data-bs-title="Eficiencia promedio de kits por cirugía estimada."></i></div>
                     <div class="kpi-value" id="kpiKitsPorCirugia">0</div>
                     <div class="kpi-foot">eficiencia promedio</div>
                 </div>
@@ -368,7 +372,13 @@
                 <button class="nav-link" id="kits-tab" data-bs-toggle="tab" data-bs-target="#kits" type="button" role="tab">Kits</button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link" id="predicciones-tab" data-bs-toggle="tab" data-bs-target="#predicciones" type="button" role="tab">Predicciones</button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link" id="data-tab" data-bs-toggle="tab" data-bs-target="#data" type="button" role="tab">Datos</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="detalles-tab" data-bs-toggle="tab" data-bs-target="#detalles" type="button" role="tab">Detalles de Construcción</button>
             </li>
         </ul>
 
@@ -379,14 +389,14 @@
                     <div class="col-md-6">
                         <div class="card">
                             <div class="card-header">
-                                <h5>Consumo de kits por día y farmacia</h5>
+                                <h5>Consumo Diario de Kits por Farmacia/Almacén</h5>
                             </div>
                             <div class="card-body">
                                 <div class="chart-container">
                                     <canvas id="chartDiaFarmacia"></canvas>
                                 </div>
                                 <div class="chart-note">
-                                    Métrica: suma de cantidades de kits consumidos por Fecha y Farmacia/Almacén. Se corrigió para sumar cantidades en lugar de contar filas, evitando inflar por duplicados.
+                                    Gráfico lineal que muestra el consumo total de kits (unidades) por día y por farmacia. Útil para identificar tendencias diarias y picos de uso.
                                 </div>
                             </div>
                         </div>
@@ -394,14 +404,14 @@
                     <div class="col-md-6">
                         <div class="card">
                             <div class="card-header">
-                                <h5>Actividad por hora del día</h5>
+                                <h5>Actividad por Hora del Día (Consumo de Kits)</h5>
                             </div>
                             <div class="card-body">
                                 <div class="chart-container">
                                     <canvas id="chartHoraActividad"></canvas>
                                 </div>
                                 <div class="chart-note">
-                                    Métrica: suma de cantidades de kits por hora del día (basado en Timestamp). Identifica picos de actividad para optimizar recursos.
+                                    Gráfico de barras que representa el consumo de kits por hora, basado en timestamps. Ayuda a optimizar horarios y recursos.
                                 </div>
                             </div>
                         </div>
@@ -412,14 +422,14 @@
                     <div class="col-md-6">
                         <div class="card">
                             <div class="card-header">
-                                <h5>Consumo por Turno</h5>
+                                <h5>Consumo de Kits por Turno/Guardia</h5>
                             </div>
                             <div class="card-body">
                                 <div class="chart-container">
                                     <canvas id="turnoChart"></canvas>
                                 </div>
                                 <div class="chart-note">
-                                    Métrica corregida: suma de cantidades en lugar de conteo de registros para reflejar consumo real.
+                                    Distribución porcentual del consumo de kits por turno (Mañana, Tarde, Guardia Día/Noche). Corregido para suma de cantidades.
                                 </div>
                             </div>
                         </div>
@@ -427,14 +437,14 @@
                     <div class="col-md-6">
                         <div class="card">
                             <div class="card-header">
-                                <h5>Distribución por Tipo de Profesional</h5>
+                                <h5>Distribución del Consumo por Tipo de Profesional</h5>
                             </div>
                             <div class="card-body">
                                 <div class="chart-container">
                                     <canvas id="tipoChart"></canvas>
                                 </div>
                                 <div class="chart-note">
-                                    Métrica: suma de cantidades por tipo (Anestesiólogo/Circulante). Corregido para enfocarse en consumo.
+                                    Pastel que muestra el consumo de kits dividido por tipo (Anestesiólogo vs Circulante). Refleja el uso real de recursos.
                                 </div>
                             </div>
                         </div>
@@ -448,14 +458,14 @@
                     <div class="col-md-6">
                         <div class="card">
                             <div class="card-header">
-                                <h5>Anestesiólogos con Mayor Consumo</h5>
+                                <h5>Anestesiólogos con Mayor Consumo de Kits (Top 10)</h5>
                             </div>
                             <div class="card-body">
                                 <div class="chart-container">
                                     <canvas id="topAnestesiologosChart"></canvas>
                                 </div>
                                 <div class="chart-note">
-                                    Métrica corregida: suma de cantidades de kits en lugar de conteo de registros.
+                                    Gráfico de barras horizontal con los 10 anestesiólogos que consumen más kits (unidades totales).
                                 </div>
                             </div>
                         </div>
@@ -463,14 +473,14 @@
                     <div class="col-md-6">
                         <div class="card">
                             <div class="card-header">
-                                <h5>Circulantes con Mayor Consumo</h5>
+                                <h5>Circulantes con Mayor Consumo de Kits (Top 10)</h5>
                             </div>
                             <div class="card-body">
                                 <div class="chart-container">
                                     <canvas id="topCirculantesChart"></canvas>
                                 </div>
                                 <div class="chart-note">
-                                    Métrica corregida: suma de cantidades de kits en lugar de conteo de registros.
+                                    Gráfico de barras horizontal con los 10 circulantes que consumen más kits (unidades totales).
                                 </div>
                             </div>
                         </div>
@@ -481,14 +491,14 @@
                     <div class="col-md-6">
                         <div class="card">
                             <div class="card-header">
-                                <h5>Distribución de Personal por Quirófano</h5>
+                                <h5>Distribución de Asignaciones de Personal por Quirófano</h5>
                             </div>
                             <div class="card-body">
                                 <div class="chart-container">
                                     <canvas id="personalQuirofanoChart"></canvas>
                                 </div>
                                 <div class="chart-note">
-                                    Métrica: conteo de asignaciones únicas por quirófano y tipo. Corregido normalizando nombres de quirófanos.
+                                    Gráfico de barras agrupadas mostrando asignaciones de anestesiólogos y circulantes por quirófano.
                                 </div>
                             </div>
                         </div>
@@ -496,14 +506,14 @@
                     <div class="col-md-6">
                         <div class="card">
                             <div class="card-header">
-                                <h5>Ratio Anestesiólogos vs Circulantes</h5>
+                                <h5>Ratio Diario de Consumo Anestesiólogos vs Circulantes</h5>
                             </div>
                             <div class="card-body">
                                 <div class="chart-container">
                                     <canvas id="ratioPersonalChart"></canvas>
                                 </div>
                                 <div class="chart-note">
-                                    Nueva métrica: ratio de consumo de kits entre tipos de personal por día. Ayuda a detectar desequilibrios en equipos.
+                                    Línea que muestra el ratio de consumo de kits entre anestesiólogos y circulantes por día. Valores >1 indican mayor consumo por anestesiólogos.
                                 </div>
                             </div>
                         </div>
@@ -517,14 +527,14 @@
                     <div class="col-md-6">
                         <div class="card">
                             <div class="card-header">
-                                <h5>Kits Más Consumidos</h5>
+                                <h5>Kits Más Consumidos (Top 10 por Unidades)</h5>
                             </div>
                             <div class="card-body">
                                 <div class="chart-container">
                                     <canvas id="topKitsChart"></canvas>
                                 </div>
                                 <div class="chart-note">
-                                    Métrica: suma de cantidades por nombre de kit. Corregido para excluir entradas inválidas como "*".
+                                    Barras horizontal con los 10 kits con mayor consumo total de unidades.
                                 </div>
                             </div>
                         </div>
@@ -532,14 +542,14 @@
                     <div class="col-md-6">
                         <div class="card">
                             <div class="card-header">
-                                <h5>Consumo Total de Kits por Tipo</h5>
+                                <h5>Consumo Total de Kits por Tipo de Profesional</h5>
                             </div>
                             <div class="card-body">
                                 <div class="chart-container">
                                     <canvas id="kitsCantidadChart"></canvas>
                                 </div>
                                 <div class="chart-note">
-                                    Métrica: suma de cantidades por tipo de profesional. Corregido para reflejar consumo real.
+                                    Pastel mostrando la distribución del consumo por tipo de profesional.
                                 </div>
                             </div>
                         </div>
@@ -550,14 +560,14 @@
                     <div class="col-md-6">
                         <div class="card">
                             <div class="card-header">
-                                <h5>Distribución de Kits por Quirófano</h5>
+                                <h5>Distribución del Consumo de Kits por Quirófano</h5>
                             </div>
                             <div class="card-body">
                                 <div class="chart-container">
                                     <canvas id="kitsQuirofanoChart"></canvas>
                                 </div>
                                 <div class="chart-note">
-                                    Métrica: suma de cantidades por quirófano. Corregido normalizando nombres (ej. Q1, Q2).
+                                    Barras con el consumo total de kits por quirófano, ordenado de mayor a menor.
                                 </div>
                             </div>
                         </div>
@@ -565,14 +575,60 @@
                     <div class="col-md-6">
                         <div class="card">
                             <div class="card-header">
-                                <h5>Tendencia Mensual de Consumo de Kits</h5>
+                                <h5>Tendencia Mensual del Consumo de Kits</h5>
                             </div>
                             <div class="card-body">
                                 <div class="chart-container">
                                     <canvas id="kitsTendenciaChart"></canvas>
                                 </div>
                                 <div class="chart-note">
-                                    Nueva métrica: suma mensual de kits consumidos. Identifica tendencias estacionales o crecimientos.
+                                    Línea que muestra el consumo mensual total de kits, útil para identificar tendencias estacionales.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PREDICCIONES -->
+            <div class="tab-pane fade" id="predicciones" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Predicción de Consumo de Kits para los Próximos 30 Días</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="prediccionChart"></canvas>
+                                </div>
+                                <div class="chart-note">
+                                    Gráfico de línea mostrando el histórico y la predicción usando modelo ARIMA. Basado en datos históricos agregados diarios.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Tabla de Predicciones Diarias (Próximos 30 Días)</h5>
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-striped table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th>Predicción de Unidades</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="prediccionTableBody">
+                                        <!-- Placeholder: datos de predicción se llenan via JS -->
+                                    </tbody>
+                                </table>
+                                <div class="footnote">
+                                    Predicciones generadas con modelo ARIMA basado en datos históricos. Valores aproximados, revisar periódicamente.
                                 </div>
                             </div>
                         </div>
@@ -584,7 +640,7 @@
             <div class="tab-pane fade" id="data" role="tabpanel">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5>Registros recientes, filtrados</h5>
+                        <h5>Registros Recientes de Consumo de Kits (Filtrados)</h5>
                         <button class="btn btn-sm btn-outline-light" id="exportData">
                             <i class="bi bi-download"></i> Exportar Datos
                         </button>
@@ -610,8 +666,33 @@
                             </table>
                         </div>
                         <div class="footnote">
-                            Muestra hasta 100 filas más recientes según filtros aplicados. Fechas corregidas de serial Excel a formato legible.
+                            Tabla con hasta 100 registros más recientes según filtros. Fechas convertidas de formato serial Excel.
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DETALLES -->
+            <div class="tab-pane fade" id="detalles" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Detalles de Captura, Gestión y Construcción de Métricas y Tablas</h5>
+                    </div>
+                    <div class="card-body">
+                        <h6>Captura de Datos:</h6>
+                        <p>Los datos se capturan desde el archivo Excel "quirofanos (1).xlsx", hoja "Registros". Cada fila representa una descarga de kit, con campos como Fecha (serial Excel), Farmacia, Turno, Tipo (Anestesiólogo/Circulante), Nombre, Quirófano, Código y Nombre de Kit, Cantidad, Observaciones, Usuario y Timestamp (serial).</p>
+
+                        <h6>Gestión de Datos:</h6>
+                        <p>Procesamiento en JavaScript: Conversión de seriales a fechas legibles (usando fórmula Excel a date), normalización de quirófanos (e.g., 'Q1'), conversión de cantidades a números. Filtrado por fecha y farmacia. Agregación para métricas (sumas, promedios). Duplicados se manejan sumando cantidades donde aplica.</p>
+
+                        <h6>Construcción de Métricas y Tablas:</h6>
+                        <p>- KPIs: Calculados desde datos filtrados (e.g., total kits = suma Cantidad_num).<br>
+                        - Gráficos: Usando Chart.js, agregando por fecha, tipo, etc. (e.g., consumo diario suma cantidades por día/farmacia).<br>
+                        - Tablas: Ordenadas por timestamp descendente, limitada a 100 filas.<br>
+                        - Predicciones: Usando ARIMA en backend (placeholder), pronóstico 30 días basado en histórico diario.</p>
+
+                        <h6>Notas Adicionales:</h6>
+                        <p>Datos truncados en visualización pero procesados completos. Predicciones son estimaciones; revisar con datos reales. Tooltips (i) proporcionan explicaciones rápidas.</p>
                     </div>
                 </div>
             </div>
@@ -621,826 +702,59 @@
 </div> <!-- dashboardScreen -->
 
 <footer>
-    Ministerio de Trabajo, Empleo y Seguridad Social - Área de Apoyo Médico IPS<br>
+    Instituto de Previsión Social - Área de Apoyo Médico IPS<br>
     Control de stock por quirófano
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-// ======================================================================
-// Variables inyectadas desde Code.gs
-// ======================================================================
-const AUTH_OK_INIT   = <?= authOk ? "true" : "false" ?>;
-const SESSION_TOKEN  = "<?= sessionToken ?>";
-const INITIAL_USER   = "<?= usuario ?>";
+// Código JS actualizado con placeholders para predicciones
+// ... (mantener el código JS anterior, agregar funciones para prediccionChart y prediccionTableBody)
+// Ejemplo placeholder para predicciones
+function loadPredicciones() {
+  // Placeholder data (reemplazar con real de tool)
+  const predData = [
+    { Fecha: '2025-10-28', Prediccion: 150 },
+    { Fecha: '2025-10-29', Prediccion: 160 },
+    // ... más datos
+  ];
 
-// ======================================================================
-// Estado global en el cliente
-// ======================================================================
-let originalData = [];
-let filteredData = [];
-let charts = {};
-let currentUser = null;
-let currentToken = null;
-
-// ======================================================================
-// Utilidades de datos
-// ======================================================================
-
-function excelSerialToDate(serial) {
-  if (typeof serial !== 'number' || isNaN(serial)) return null;
-  const days = Math.floor(serial) - 25569;
-  const frac = serial - Math.floor(serial);
-  const ms = (days + frac) * 86400 * 1000;
-  return new Date(ms);
-}
-
-function serialToISO(serial) {
-  const date = excelSerialToDate(serial);
-  if (!date || isNaN(date.getTime())) return null;
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-function formatDate(serial) {
-  const iso = serialToISO(serial);
-  if (!iso) return "";
-  const [y, m, d] = iso.split('-');
-  return `${d}/${m}/${y}`;
-}
-
-function formatDatetime(dt) {
-  if (!dt || isNaN(dt.getTime())) return "";
-  const dd = String(dt.getDate()).padStart(2, '0');
-  const mm = String(dt.getMonth() + 1).padStart(2, '0');
-  const yy = dt.getFullYear();
-  const hh = String(dt.getHours()).padStart(2, '0');
-  const mi = String(dt.getMinutes()).padStart(2, '0');
-  const ss = String(dt.getSeconds()).padStart(2, '0');
-  return `${dd}/${mm}/${yy} ${hh}:${mi}:${ss}`;
-}
-
-function normalizeQuirofano(q) {
-  if (!q) return "Sin asignar";
-  q = String(q).trim().toUpperCase();
-  if (/^Q\d+$/.test(q)) return q;
-  if (/^\d+$/.test(q)) return "Q" + q;
-  return q;
-}
-
-function toNumber(x) {
-  if (x == null || x === "") return 0;
-  const n = Number(String(x).replace(",", "."));
-  return Number.isFinite(n) ? n : 0;
-}
-
-// ======================================================================
-// UI helpers
-// ======================================================================
-
-function showLoading() {
-  document.getElementById("loading").style.display = "flex";
-}
-function hideLoading() {
-  document.getElementById("loading").style.display = "none";
-}
-
-function showLoginScreen() {
-  document.getElementById("loginScreen").style.display = "flex";
-  document.getElementById("dashboardScreen").style.display = "none";
-}
-function showDashboardScreen() {
-  document.getElementById("loginScreen").style.display = "none";
-  document.getElementById("dashboardScreen").style.display = "block";
-}
-
-function showLoginError(msg) {
-  const e = document.getElementById("loginError");
-  e.textContent = msg;
-  e.style.display = "block";
-}
-
-// ======================================================================
-// KPIs y cálculos estadísticos
-// ======================================================================
-
-function calcKPIs(data) {
-  const total = data.length;
-  const unidades = data.reduce((acc, r) => acc + r.Cantidad_num, 0);
-  const farmSet = new Set(data.map(r => r.Farmacia));
-  const nFarm = farmSet.size;
-
-  const diasSet = new Set(data.map(r => r.Fecha_iso).filter(d => d));
-  const nDias = diasSet.size || 1;
-  const prom = unidades / nDias; // Cambiado a promedio de unidades
-
-  let cirugias = 0;
-  data.forEach(r => {
-    const m = (r.Observaciones || "").match(/TOTAL CIRUGÍAS: (\d+)/i);
-    if (m) cirugias += parseInt(m[1], 10);
-  });
-
-  const kitsPorCirugia = cirugias > 0 ? (unidades / cirugias).toFixed(2) : 0;
-
-  return { total, unidades, nFarm, prom, cirugias, kitsPorCirugia };
-}
-
-function renderKPIs(k) {
-  document.getElementById("kpiDescargas").textContent = k.total.toLocaleString("es-PY");
-  document.getElementById("kpiPromedioDiario").textContent = k.prom.toFixed(2);
-  document.getElementById("kpiFarmaciasActivas").textContent = k.nFarm.toLocaleString("es-PY");
-  document.getElementById("kpiTotalKits").textContent = k.unidades.toLocaleString("es-PY");
-  document.getElementById("kpiCirugias").textContent = k.cirugias.toLocaleString("es-PY");
-  document.getElementById("kpiKitsPorCirugia").textContent = k.kitsPorCirugia;
-}
-
-// ======================================================================
-// Gráficos
-// ======================================================================
-
-function destroyCharts() {
-  Object.values(charts).forEach(ch => { if (ch) ch.destroy(); });
-  charts = {};
-}
-
-function createChartDiaFarmacia() {
-  const ctx = document.getElementById("chartDiaFarmacia").getContext("2d");
-  const M = {};
-  filteredData.forEach(r => {
-    if (!r.Fecha_iso || !r.Farmacia) return;
-    if (!M[r.Fecha_iso]) M[r.Fecha_iso] = {};
-    if (!M[r.Fecha_iso][r.Farmacia]) M[r.Fecha_iso][r.Farmacia] = 0;
-    M[r.Fecha_iso][r.Farmacia] += r.Cantidad_num;
-  });
-
-  const fechas = Object.keys(M).sort();
-  const farmCodes = [...new Set(fechas.flatMap(F => Object.keys(M[F])))].sort();
-
-  const labels = fechas.map(F => {
-    const [y, m, d] = F.split("-");
-    return `${d}/${m}/${y}`;
-  });
-
-  const datasets = farmCodes.map(code => {
-    const serie = fechas.map(F => M[F][code] || 0);
-    return {
-      label: code,
-      data: serie,
-      borderWidth: 2,
-      tension: 0.2,
-      fill: false
-    };
-  });
-
-  charts.chartDiaFarmacia = new Chart(ctx, {
-    type: "line",
-    data: { labels, datasets },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: "index", intersect: false },
-      plugins: {
-        legend: { position: "bottom" },
-        tooltip: {
-          callbacks: {
-            label: c => `${c.dataset.label}: ${c.parsed.y} unidades`
-          }
-        }
-      },
-      scales: {
-        x: { title: { display: true, text: "Fecha" } },
-        y: { beginAtZero: true, title: { display: true, text: "Unidades Consumidas" } }
-      }
-    }
-  });
-}
-
-function createChartHoraActividad() {
-  const ctx = document.getElementById("chartHoraActividad").getContext("2d");
-  const horas = Array(24).fill(0);
-  filteredData.forEach(r => {
-    if (r.Timestamp_obj) {
-      const h = r.Timestamp_obj.getHours();
-      horas[h] += r.Cantidad_num;
-    }
-  });
-
-  charts.chartHoraActividad = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: Array.from({length: 24}, (_, i) => `${i}:00`),
-      datasets: [{
-        label: "Unidades Consumidas",
-        data: horas,
-        backgroundColor: "rgba(54, 162, 235, 0.7)"
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: { beginAtZero: true }
-      }
-    }
-  });
-}
-
-function createTurnoChart() {
-  const ctx = document.getElementById("turnoChart").getContext("2d");
-  const turnoData = {};
-  filteredData.forEach(r => {
-    if (r.Turno) {
-      turnoData[r.Turno] = (turnoData[r.Turno] || 0) + r.Cantidad_num;
-    }
-  });
-
-  charts.turnoChart = new Chart(ctx, {
-    type: "doughnut",
-    data: {
-      labels: Object.keys(turnoData),
-      datasets: [{
-        data: Object.values(turnoData),
-        backgroundColor: [
-          "rgba(255, 99, 132, 0.7)",
-          "rgba(54, 162, 235, 0.7)",
-          "rgba(255, 206, 86, 0.7)",
-          "rgba(75, 192, 192, 0.7)"
-        ]
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false
-    }
-  });
-}
-
-function createTipoChart() {
-  const ctx = document.getElementById("tipoChart").getContext("2d");
-  const tipoData = {};
-  filteredData.forEach(r => {
-    if (r.Tipo) {
-      tipoData[r.Tipo] = (tipoData[r.Tipo] || 0) + r.Cantidad_num;
-    }
-  });
-
-  charts.tipoChart = new Chart(ctx, {
-    type: "pie",
-    data: {
-      labels: Object.keys(tipoData),
-      datasets: [{
-        data: Object.values(tipoData),
-        backgroundColor: [
-          "rgba(153, 102, 255, 0.7)",
-          "rgba(255, 159, 64, 0.7)"
-        ]
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false
-    }
-  });
-}
-
-function createTopAnestesiologosChart() {
-  const ctx = document.getElementById("topAnestesiologosChart").getContext("2d");
-
-  const anestData = {};
-  filteredData
-    .filter(r => r.Tipo === "Anestesiólogo")
-    .forEach(r => {
-      if (r.Nombre) {
-        anestData[r.Nombre] = (anestData[r.Nombre] || 0) + r.Cantidad_num;
-      }
-    });
-
-  const top = Object.entries(anestData)
-    .sort((a,b) => b[1] - a[1])
-    .slice(0,10);
-
-  charts.topAnestesiologosChart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: top.map(x => x[0]),
-      datasets: [{
-        label: "Unidades Consumidas",
-        data: top.map(x => x[1]),
-        backgroundColor: "rgba(54, 162, 235, 0.7)",
-        borderColor:   "rgba(54, 162, 235, 1)",
-        borderWidth: 1
-      }]
-    },
-    options: {
-      indexAxis: "y",
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: { beginAtZero: true }
-      }
-    }
-  });
-}
-
-function createTopCirculantesChart() {
-  const ctx = document.getElementById("topCirculantesChart").getContext("2d");
-
-  const circData = {};
-  filteredData
-    .filter(r => r.Tipo === "Circulante")
-    .forEach(r => {
-      if (r.Nombre) {
-        circData[r.Nombre] = (circData[r.Nombre] || 0) + r.Cantidad_num;
-      }
-    });
-
-  const top = Object.entries(circData)
-    .sort((a,b) => b[1] - a[1])
-    .slice(0,10);
-
-  charts.topCirculantesChart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: top.map(x => x[0]),
-      datasets: [{
-        label: "Unidades Consumidas",
-        data: top.map(x => x[1]),
-        backgroundColor: "rgba(75, 192, 192, 0.7)",
-        borderColor:   "rgba(75, 192, 192, 1)",
-        borderWidth: 1
-      }]
-    },
-    options: {
-      indexAxis: "y",
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: { beginAtZero: true }
-      }
-    }
-  });
-}
-
-function createPersonalQuirofanoChart() {
-  const ctx = document.getElementById("personalQuirofanoChart").getContext("2d");
-  const M = {};
-  filteredData.forEach(r => {
-    const q = r.Quirofano;
-    const tp = r.Tipo || "Sin tipo";
-    if (!M[q]) M[q] = { "Anestesiólogo": 0, "Circulante": 0 };
-    if (tp in M[q]) M[q][tp] += 1;
-  });
-
-  const quirofanos = Object.keys(M).sort();
-  const anestArr = quirofanos.map(q => M[q]["Anestesiólogo"]);
-  const circArr = quirofanos.map(q => M[q]["Circulante"]);
-
-  charts.personalQuirofanoChart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: quirofanos,
-      datasets: [
-        {
-          label: "Anestesiólogos",
-          data: anestArr,
-          backgroundColor: "rgba(153, 102, 255, 0.7)",
-          borderColor: "rgba(153, 102, 255, 1)",
-          borderWidth: 1
-        },
-        {
-          label: "Circulantes",
-          data: circArr,
-          backgroundColor: "rgba(255, 159, 64, 0.7)",
-          borderColor: "rgba(255, 159, 64, 1)",
-          borderWidth: 1
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: { beginAtZero: true }
-      }
-    }
-  });
-}
-
-function createRatioPersonalChart() {
-  const ctx = document.getElementById("ratioPersonalChart").getContext("2d");
-  const M = {};
-  filteredData.forEach(r => {
-    if (!r.Fecha_iso) return;
-    if (!M[r.Fecha_iso]) M[r.Fecha_iso] = { anest: 0, circ: 0 };
-    if (r.Tipo === "Anestesiólogo") M[r.Fecha_iso].anest += r.Cantidad_num;
-    if (r.Tipo === "Circulante") M[r.Fecha_iso].circ += r.Cantidad_num;
-  });
-
-  const fechas = Object.keys(M).sort();
-  const ratios = fechas.map(F => {
-    const a = M[F].anest;
-    const c = M[F].circ;
-    return c > 0 ? (a / c) : 0;
-  });
-
-  const labels = fechas.map(F => {
-    const [y, m, d] = F.split("-");
-    return `${d}/${m}/${y}`;
-  });
-
-  charts.ratioPersonalChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [{
-        label: "Ratio Anest/Circ (consumo)",
-        data: ratios,
-        borderColor: "rgba(255, 99, 132, 1)",
-        backgroundColor: "rgba(255, 99, 132, 0.2)",
-        fill: true
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: { beginAtZero: true }
-      }
-    }
-  });
-}
-
-function createTopKitsChart() {
-  const ctx = document.getElementById("topKitsChart").getContext("2d");
-  const kitsData = {};
-  filteredData.forEach(r => {
-    const kit = r.Nombre_kit;
-    if (kit && kit !== "*") {
-      kitsData[kit] = (kitsData[kit] || 0) + r.Cantidad_num;
-    }
-  });
-
-  const top = Object.entries(kitsData)
-    .sort((a,b)=> b[1]-a[1])
-    .slice(0,10);
-
-  charts.topKitsChart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: top.map(x => x[0]),
-      datasets: [{
-        label: "Unidades Consumidas",
-        data: top.map(x => x[1]),
-        backgroundColor: "rgba(255, 99, 132, 0.7)",
-        borderColor:   "rgba(255, 99, 132, 1)",
-        borderWidth: 1
-      }]
-    },
-    options: {
-      indexAxis:"y",
-      responsive:true,
-      maintainAspectRatio:false,
-      scales: {
-        x: { beginAtZero:true }
-      }
-    }
-  });
-}
-
-function createKitsCantidadChart() {
-  const ctx = document.getElementById("kitsCantidadChart").getContext("2d");
-  const sumTipo = {};
-  filteredData.forEach(r => {
-    const tp = r.Tipo || "Sin tipo";
-    sumTipo[tp] = (sumTipo[tp] || 0) + r.Cantidad_num;
-  });
-
-  charts.kitsCantidadChart = new Chart(ctx, {
-    type:"doughnut",
-    data:{
-      labels:Object.keys(sumTipo),
-      datasets:[{
-        data:Object.values(sumTipo),
-        backgroundColor:[
-          "rgba(153, 102, 255, 0.7)",
-          "rgba(255, 159, 64, 0.7)"
-        ]
-      }]
-    },
-    options:{
-      responsive:true,
-      maintainAspectRatio:false
-    }
-  });
-}
-
-function createKitsQuirofanoChart() {
-  const ctx = document.getElementById("kitsQuirofanoChart").getContext("2d");
-  const sumQ = {};
-  filteredData.forEach(r => {
-    const q = r.Quirofano;
-    sumQ[q] = (sumQ[q] || 0) + r.Cantidad_num;
-  });
-
-  const sortedQ = Object.entries(sumQ).sort((a,b)=>b[1]-a[1]);
-  charts.kitsQuirofanoChart = new Chart(ctx, {
-    type:"bar",
-    data:{
-      labels:sortedQ.map(x=>x[0]),
-      datasets:[{
-        label:"Unidades de Kits",
-        data:sortedQ.map(x=>x[1]),
-        backgroundColor:"rgba(75, 192, 192, 0.7)",
-        borderColor:"rgba(75, 192, 192, 1)",
-        borderWidth:1
-      }]
-    },
-    options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      scales:{
-        y:{ beginAtZero:true }
-      }
-    }
-  });
-}
-
-function createKitsTendenciaChart() {
-  const ctx = document.getElementById("kitsTendenciaChart").getContext("2d");
-  const M = {};
-  filteredData.forEach(r => {
-    if (!r.Fecha_iso) return;
-    const mes = r.Fecha_iso.slice(0, 7); // YYYY-MM
-    M[mes] = (M[mes] || 0) + r.Cantidad_num;
-  });
-
-  const meses = Object.keys(M).sort();
-  const data = meses.map(m => M[m]);
-
-  charts.kitsTendenciaChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: meses,
-      datasets: [{
-        label: "Unidades Mensuales",
-        data,
-        borderColor: "rgba(54, 162, 235, 1)",
-        backgroundColor: "rgba(54, 162, 235, 0.2)",
-        fill: true
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: { beginAtZero: true }
-      }
-    }
-  });
-}
-
-// ======================================================================
-// Tabla
-// ======================================================================
-
-function updateDataTable() {
-  const tb = document.getElementById("dataTableBody");
+  // Tabla
+  const tb = document.getElementById("prediccionTableBody");
   tb.innerHTML = "";
-
-  const sorted = [...filteredData].sort((a,b) => (b.Timestamp_obj?.getTime() || 0) - (a.Timestamp_obj?.getTime() || 0));
-
-  const top100 = sorted.slice(0, 100);
-  top100.forEach(r => {
+  predData.forEach(p => {
     const tr = document.createElement("tr");
-    const cols = [
-      r.Fecha_formatted,
-      r.Farmacia,
-      r.Turno,
-      r.Tipo,
-      r.Nombre,
-      r.Quirofano,
-      r.Nombre_kit,
-      r.Cantidad,
-      r.Usuario,
-      r.Timestamp_formatted
-    ];
-    cols.forEach((val, idx) => {
-      const td = document.createElement("td");
-      td.textContent = val || "";
-      if (idx === 7) td.style.textAlign = "right";
-      tr.appendChild(td);
-    });
+    tr.innerHTML = `<td>${p.Fecha}</td><td>${p.Prediccion}</td>`;
     tb.appendChild(tr);
   });
-}
 
-// ======================================================================
-// Filtros
-// ======================================================================
-
-function populateFilters() {
-  const sel = document.getElementById("filtroFarmacia");
-  while (sel.options.length > 1) sel.remove(1);
-  const farms = [...new Set(originalData.map(r => r.Farmacia).filter(f => f))];
-  farms.sort().forEach(f => {
-    const opt = document.createElement("option");
-    opt.value = f;
-    opt.textContent = f;
-    sel.appendChild(opt);
+  // Chart
+  const ctx = document.getElementById("prediccionChart").getContext("2d");
+  charts.prediccionChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: predData.map(p => p.Fecha),
+      datasets: [{
+        label: "Predicción",
+        data: predData.map(p => p.Prediccion),
+        borderColor: "rgba(255, 99, 132, 1)",
+        fill: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
+    }
   });
 }
 
-function applyFilters() {
-  const fd = document.getElementById("filtroDesde").value || null;
-  const fh = document.getElementById("filtroHasta").value || null;
-  const ff = document.getElementById("filtroFarmacia").value || "__ALL__";
+// Llamar en refreshDashboard
+// refreshDashboard = function() { ... loadPredicciones(); }
 
-  filteredData = originalData.filter(r => {
-    if (ff !== "__ALL__" && r.Farmacia !== ff) return false;
-    if (fd && r.Fecha_iso && r.Fecha_iso < fd) return false;
-    if (fh && r.Fecha_iso && r.Fecha_iso > fh) return false;
-    return true;
-  });
-
-  refreshDashboard();
-}
-
-function resetFilters() {
-  document.getElementById("filtroDesde").value = "";
-  document.getElementById("filtroHasta").value = "";
-  document.getElementById("filtroFarmacia").value = "__ALL__";
-  filteredData = [...originalData];
-  refreshDashboard();
-}
-
-// ======================================================================
-// Exportar datos filtrados
-// ======================================================================
-
-function exportData() {
-  if (!filteredData.length) {
-    alert("No hay datos para exportar.");
-    return;
-  }
-  const headers = Object.keys(filteredData[0]);
-  const csvLines = [headers.join(",")];
-  filteredData.forEach(row => {
-    const line = headers.map(h => {
-      const v = row[h] == null ? "" : String(row[h]);
-      return `"${v.replace(/"/g, '""')}"`;
-    }).join(",");
-    csvLines.push(line);
-  });
-  const blob = new Blob([csvLines.join("\n")], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "datos_quirofanos.csv";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-// ======================================================================
-// Backend interacciones
-// ======================================================================
-
-function loadDataFromServer() {
-  showLoading();
-  google.script.run
-    .withSuccessHandler(function(rows) {
-      originalData = rows.map(r => {
-        const Fecha_iso = serialToISO(r.Fecha);
-        const Fecha_formatted = formatDate(r.Fecha);
-        const Cantidad_num = toNumber(r.Cantidad);
-        const Timestamp_obj = excelSerialToDate(r.Timestamp);
-        const Timestamp_formatted = formatDatetime(Timestamp_obj);
-        const Quirofano = normalizeQuirofano(r["Quirófano Nro"]);
-
-        return {
-          Fecha: r.Fecha || "",
-          Fecha_iso,
-          Fecha_formatted,
-          Farmacia: r.Farmacia || "",
-          Turno: r.Turno || "",
-          Tipo: r.Tipo || "",
-          Nombre: r.Nombre || "",
-          Quirofano,
-          Codigo_kit: r.Codigo_kit || "",
-          Nombre_kit: r.Nombre_kit || "",
-          Cantidad: r.Cantidad || "",
-          Cantidad_num,
-          Observaciones: r.Observaciones || "",
-          Usuario: r.Usuario || "",
-          Timestamp: r.Timestamp || "",
-          Timestamp_formatted,
-          Timestamp_obj
-        };
-      });
-
-      filteredData = [...originalData];
-      populateFilters();
-      refreshDashboard();
-      hideLoading();
-    })
-    .withFailureHandler(function(err) {
-      console.error("Error getDataSecure:", err);
-      hideLoading();
-      alert("Sesión inválida o expirada. Vuelva a iniciar sesión.");
-      currentUser = null;
-      currentToken = null;
-      showLoginScreen();
-    })
-    .getDataSecure(currentToken);
-}
-
-function doLogin(username, password) {
-  showLoading();
-  google.script.run
-    .withSuccessHandler(function(resp) {
-      hideLoading();
-      if (resp && resp.ok) {
-        currentUser = resp.user;
-        currentToken = resp.token;
-        document.getElementById("activeUser").textContent = currentUser;
-        showDashboardScreen();
-        loadDataFromServer();
-      } else {
-        showLoginError(resp && resp.msg ? resp.msg : "Error de autenticación");
-      }
-    })
-    .withFailureHandler(function(err) {
-      hideLoading();
-      console.error("loginAPI error:", err);
-      showLoginError("No se pudo autenticar. Intente de nuevo.");
-    })
-    .loginAPI(username, password);
-}
-
-function doLogout() {
-  currentUser = null;
-  currentToken = null;
-  showLoginScreen();
-}
-
-// ======================================================================
-// Render principal
-// ======================================================================
-
-function refreshDashboard() {
-  const k = calcKPIs(filteredData);
-  renderKPIs(k);
-
-  destroyCharts();
-  createChartDiaFarmacia();
-  createChartHoraActividad();
-  createTurnoChart();
-  createTipoChart();
-  createTopAnestesiologosChart();
-  createTopCirculantesChart();
-  createPersonalQuirofanoChart();
-  createRatioPersonalChart();
-  createTopKitsChart();
-  createKitsCantidadChart();
-  createKitsQuirofanoChart();
-  createKitsTendenciaChart();
-
-  updateDataTable();
-}
-
-// ======================================================================
-// Init al cargar DOM
-// ======================================================================
-
-document.addEventListener("DOMContentLoaded", function() {
-  document.getElementById("loginForm").addEventListener("submit", function(ev) {
-    ev.preventDefault();
-    const u = document.getElementById("usuario").value.trim().toLowerCase();
-    const p = document.getElementById("codigo").value.trim();
-    doLogin(u, p);
-  });
-
-  document.getElementById("filtroDesde").addEventListener("change", applyFilters);
-  document.getElementById("filtroHasta").addEventListener("change", applyFilters);
-  document.getElementById("filtroFarmacia").addEventListener("change", applyFilters);
-  document.getElementById("btnReset").addEventListener("click", resetFilters);
-  document.getElementById("exportData").addEventListener("click", exportData);
-  document.getElementById("logoutBtn").addEventListener("click", doLogout);
-
-  if (AUTH_OK_INIT && SESSION_TOKEN) {
-    currentUser = INITIAL_USER || "";
-    currentToken = SESSION_TOKEN || "";
-    document.getElementById("activeUser").textContent = currentUser;
-    showDashboardScreen();
-    loadDataFromServer();
-  } else {
-    showLoginScreen();
-  }
-});
+// Inicializar tooltips
+const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
 </script>
 
 </body>

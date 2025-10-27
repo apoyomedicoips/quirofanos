@@ -1,0 +1,199 @@
+:root {
+    --bg-main: #0f172a;
+    --bg-panel: #1e293b;
+    --bg-card: #334155;
+    --text-main: #f8fafc;
+    --text-dim: #94a3b8;
+    --accent: #38bdf8;
+    --border-col: #475569;
+    --radius-lg: 1rem;
+    --radius-sm: .5rem;
+    --gap-lg: 1.5rem;
+    --gap-sm: .75rem;
+    --font-main: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    font-family: var(--font-main);
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* Header */
+.header {
+    background-color: var(--bg-panel);
+    border-bottom: 1px solid var(--border-col);
+    padding: 1rem;
+}
+.header-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+.header-inner h1 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+.subtitle {
+    margin-top: .25rem;
+    font-size: .875rem;
+    color: var(--text-dim);
+}
+
+/* Layout principal */
+.main-layout {
+    max-width: 1400px;
+    margin: 1.5rem auto 4rem auto;
+    padding: 0 1rem;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-auto-rows: auto;
+    gap: var(--gap-lg);
+}
+
+/* Panel genérico */
+.panel {
+    background-color: var(--bg-panel);
+    border: 1px solid var(--border-col);
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.25rem 1.25rem 1.25rem;
+}
+.panel h2 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+/* Filtros */
+.filtros .filtro-grid {
+    display: grid;
+    gap: var(--gap-sm);
+    grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+}
+.filtro-item {
+    display: flex;
+    flex-direction: column;
+}
+.filtro-item label {
+    font-size: .75rem;
+    color: var(--text-dim);
+    margin-bottom: .25rem;
+}
+.filtro-item input[type="date"],
+.filtro-item select {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-col);
+    border-radius: var(--radius-sm);
+    color: var(--text-main);
+    font-size: .875rem;
+    padding: .5rem .5rem;
+}
+.botonera {
+    justify-content: flex-end;
+}
+.botonera button {
+    margin-top: auto;
+    background-color: var(--accent);
+    border: 0;
+    border-radius: var(--radius-sm);
+    color: #000;
+    font-weight: 600;
+    font-size: .8rem;
+    padding: .5rem .75rem;
+    cursor: pointer;
+}
+
+/* KPIs */
+.kpi-grid {
+    display: grid;
+    gap: var(--gap-sm);
+    grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+}
+.kpi-card {
+    background-color: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+    border: 1px solid var(--border-col);
+    display: flex;
+    flex-direction: column;
+    min-height: 120px;
+    justify-content: space-between;
+}
+.kpi-label {
+    font-size: .75rem;
+    color: var(--text-dim);
+    font-weight: 500;
+}
+.kpi-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--accent);
+}
+.kpi-foot {
+    font-size: .7rem;
+    color: var(--text-dim);
+}
+
+/* Chart panel */
+.chart-panel .chart-nota {
+    font-size: .7rem;
+    color: var(--text-dim);
+    margin-top: .5rem;
+    line-height: 1.3;
+}
+
+/* Tabla detalle */
+.tabla-panel table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .8rem;
+}
+.tabla-panel thead {
+    background-color: var(--bg-card);
+}
+.tabla-panel th,
+.tabla-panel td {
+    border-bottom: 1px solid var(--border-col);
+    padding: .5rem .5rem;
+    text-align: left;
+    vertical-align: top;
+    color: var(--text-main);
+}
+.tabla-panel th {
+    font-weight: 600;
+    font-size: .7rem;
+    color: var(--text-dim);
+    white-space: nowrap;
+}
+.tabla-panel tbody tr:hover {
+    background-color: rgba(56,189,248,0.08);
+}
+.tabla-footnote {
+    font-size: .7rem;
+    color: var(--text-dim);
+    margin-top: .5rem;
+}
+
+/* Footer */
+.footer {
+    background-color: var(--bg-panel);
+    border-top: 1px solid var(--border-col);
+    padding: 1rem;
+    margin-top: 4rem;
+    color: var(--text-dim);
+    font-size: .7rem;
+}
+.footer-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    line-height: 1.3;
+}

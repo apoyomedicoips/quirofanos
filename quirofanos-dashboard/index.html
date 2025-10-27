@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Tablero de Consumo de Kits Quirófano</title>
+
+    <link rel="stylesheet" href="css/style.css" />
+
+    <!-- dayjs para manejo de fechas -->
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/customParseFormat.js"></script>
+    <script>
+        dayjs.extend(dayjs_plugin_customParseFormat);
+    </script>
+
+    <!-- PapaParse para parsear CSV remoto -->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+    <!-- Chart.js para visualizaciones -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<header class="header">
+    <div class="header-inner">
+        <h1>Tablero de Consumo de Kits en Quirófano</h1>
+        <p class="subtitle">Extracción directa desde hoja "Registros" de Google Sheets</p>
+    </div>
+</header>
+
+<main class="main-layout">
+
+    <!-- Panel de filtros -->
+    <section class="panel filtros">
+        <h2>Filtros</h2>
+        <div class="filtro-grid">
+
+            <div class="filtro-item">
+                <label for="filtroDesde">Desde (Fecha cirugía)</label>
+                <input type="date" id="filtroDesde" />
+            </div>
+
+            <div class="filtro-item">
+                <label for="filtroHasta">Hasta (Fecha cirugía)</label>
+                <input type="date" id="filtroHasta" />
+            </div>
+
+            <div class="filtro-item">
+                <label for="filtroFarmacia">Farmacia</label>
+                <select id="filtroFarmacia">
+                    <option value="__ALL__" selected>Todas</option>
+                </select>
+            </div>
+
+            <div class="filtro-item botonera">
+                <button id="btnReset">Limpiar filtros</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- KPIs -->
+    <section class="panel kpis">
+        <h2>Indicadores</h2>
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-label">Descargas filtradas</div>
+                <div class="kpi-value" id="kpiDescargas">0</div>
+                <div class="kpi-foot">Filas (kits) registradas</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Promedio diario</div>
+                <div class="kpi-value" id="kpiPromedioDiario">0</div>
+                <div class="kpi-foot">Descargas / día</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Farmacias activas</div>
+                <div class="kpi-value" id="kpiFarmaciasActivas">0</div>
+                <div class="kpi-foot">en rango filtrado</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Gráfico descargas por día y farmacia -->
+    <section class="panel chart-panel">
+        <h2>Descargas por día y por farmacia</h2>
+        <canvas id="chartDiaFarmacia" height="120"></canvas>
+        <p class="chart-nota">
+            Métrica: número de registros (o suma de Cantidad limpia, truncada a máx 1000) agrupada por Fecha y Farmacia.
+        </p>
+    </section>
+
+    <!-- Tabla detalle -->
+    <section class="panel tabla-panel">
+        <h2>Registros recientes (filtrados)</h2>
+        <table id="tablaDetalle">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Farmacia</th>
+                    <th>Turno</th>
+                    <th>Tipo</th>
+                    <th>Nombre</th>
+                    <th>Quirófano</th>
+                    <th>Kit</th>
+                    <th>Cantidad</th>
+                    <th>Usuario</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Se completa dinámicamente -->
+            </tbody>
+        </table>
+        <div class="tabla-footnote">
+            Muestra hasta 100 filas más recientes según filtros aplicados.
+        </div>
+    </section>
+
+</main>
+
+<footer class="footer">
+    <div class="footer-inner">
+        <div>Ministerio de Trabajo, Empleo y Seguridad Social - Área de Apoyo Médico IPS</div>
+        <div>Tablero en construcción. Control de stock por quirófano.</div>
+    </div>
+</footer>
+
+<script src="js/app.js"></script>
+</body>
+</html>

@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -709,37 +710,247 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-// Código JS actualizado con placeholders para predicciones
-// ... (mantener el código JS anterior, agregar funciones para prediccionChart y prediccionTableBody)
-// Ejemplo placeholder para predicciones
-function loadPredicciones() {
-  // Placeholder data (reemplazar con real de tool)
-  const predData = [
-    { Fecha: '2025-10-28', Prediccion: 150 },
-    { Fecha: '2025-10-29', Prediccion: 160 },
-    // ... más datos
-  ];
+// ======================================================================
+// Variables inyectadas desde Code.gs
+// ======================================================================
+const AUTH_OK_INIT   = <?= authOk ? "true" : "false" ?>;
+const SESSION_TOKEN  = "<?= sessionToken ?>";
+const INITIAL_USER   = "<?= usuario ?>";
 
-  // Tabla
-  const tb = document.getElementById("prediccionTableBody");
-  tb.innerHTML = "";
-  predData.forEach(p => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${p.Fecha}</td><td>${p.Prediccion}</td>`;
-    tb.appendChild(tr);
+// ======================================================================
+// Estado global en el cliente
+// ======================================================================
+let originalData = [];
+let filteredData = [];
+let charts = {};
+let currentUser = null;
+let currentToken = null;
+
+// ======================================================================
+// Utilidades de datos
+// ======================================================================
+
+function excelSerialToDate(serial) {
+  if (typeof serial !== 'number' || isNaN(serial)) return null;
+  const days = Math.floor(serial) - 25569;
+  const frac = serial - Math.floor(serial);
+  const ms = (days + frac) * 86400 * 1000;
+  return new Date(ms);
+}
+
+function serialToISO(serial) {
+  const date = excelSerialToDate(serial);
+  if (!date || isNaN(date.getTime())) return null;
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function formatDate(serial) {
+  const iso = serialToISO(serial);
+  if (!iso) return "";
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function formatDatetime(dt) {
+  if (!dt || isNaN(dt.getTime())) return "";
+  const dd = String(dt.getDate()).padStart(2, '0');
+  const mm = String(dt.getMonth() + 1).padStart(2, '0');
+  const yy = dt.getFullYear();
+  const hh = String(dt.getHours()).padStart(2, '0');
+  const mi = String(dt.getMinutes()).padStart(2, '0');
+  const ss = String(dt.getSeconds()).padStart(2, '0');
+  return `${dd}/${mm}/${yy} ${hh}:${mi}:${ss}`;
+}
+
+function normalizeQuirofano(q) {
+  if (!q) return "Sin asignar";
+  q = String(q).trim().toUpperCase();
+  if (/^Q\d+$/.test(q)) return q;
+  if (/^\d+$/.test(q)) return "Q" + q;
+  return q;
+}
+
+function toNumber(x) {
+  if (x == null || x === "") return 0;
+  const n = Number(String(x).replace(",", "."));
+  return Number.isFinite(n) ? n : 0;
+}
+
+// ======================================================================
+// UI helpers
+// ======================================================================
+
+function showLoading() {
+  document.getElementById("loading").style.display = "flex";
+}
+function hideLoading() {
+  document.getElementById("loading").style.display = "none";
+}
+
+function showLoginScreen() {
+  document.getElementById("loginScreen").style.display = "flex";
+  document.getElementById("dashboardScreen").style.display = "none";
+}
+function showDashboardScreen() {
+  document.getElementById("loginScreen").style.display = "none";
+  document.getElementById("dashboardScreen").style.display = "block";
+}
+
+function showLoginError(msg) {
+  const e = document.getElementById("loginError");
+  e.textContent = msg;
+  e.style.display = "block";
+}
+
+// ======================================================================
+// KPIs y cálculos estadísticos
+// ======================================================================
+
+function calcKPIs(data) {
+  const total = data.length;
+  const unidades = data.reduce((acc, r) => acc + r.Cantidad_num, 0);
+  const farmSet = new Set(data.map(r => r.Farmacia));
+  const nFarm = farmSet.size;
+
+  const diasSet = new Set(data.map(r => r.Fecha_iso).filter(d => d));
+  const nDias = diasSet.size || 1;
+  const prom = unidades / nDias; // Cambiado a promedio de unidades
+
+  let cirugias = 0;
+  data.forEach(r => {
+    const m = (r.Observaciones || "").match(/TOTAL CIRUGÍAS: (\d+)/i);
+    if (m) cirugias += parseInt(m[1], 10);
   });
 
-  // Chart
-  const ctx = document.getElementById("prediccionChart").getContext("2d");
-  charts.prediccionChart = new Chart(ctx, {
+  const kitsPorCirugia = cirugias > 0 ? (unidades / cirugias).toFixed(2) : 0;
+
+  return { total, unidades, nFarm, prom, cirugias, kitsPorCirugia };
+}
+
+function renderKPIs(k) {
+  document.getElementById("kpiDescargas").textContent = k.total.toLocaleString("es-PY");
+  document.getElementById("kpiPromedioDiario").textContent = k.prom.toFixed(2);
+  document.getElementById("kpiFarmaciasActivas").textContent = k.nFarm.toLocaleString("es-PY");
+  document.getElementById("kpiTotalKits").textContent = k.unidades.toLocaleString("es-PY");
+  document.getElementById("kpiCirugias").textContent = k.cirugias.toLocaleString("es-PY");
+  document.getElementById("kpiKitsPorCirugia").textContent = k.kitsPorCirugia;
+}
+
+// ======================================================================
+// Gráficos
+// ======================================================================
+
+function destroyCharts() {
+  Object.values(charts).forEach(ch => { if (ch) ch.destroy(); });
+  charts = {};
+}
+
+function createChartDiaFarmacia() {
+  const ctx = document.getElementById("chartDiaFarmacia").getContext("2d");
+  const M = {};
+  filteredData.forEach(r => {
+    if (!r.Fecha_iso || !r.Farmacia) return;
+    if (!M[r.Fecha_iso]) M[r.Fecha_iso] = {};
+    if (!M[r.Fecha_iso][r.Farmacia]) M[r.Fecha_iso][r.Farmacia] = 0;
+    M[r.Fecha_iso][r.Farmacia] += r.Cantidad_num;
+  });
+
+  const fechas = Object.keys(M).sort();
+  const farmCodes = [...new Set(fechas.flatMap(F => Object.keys(M[F])))].sort();
+
+  const labels = fechas.map(F => {
+    const [y, m, d] = F.split("-");
+    return `${d}/${m}/${y}`;
+  });
+
+  const datasets = farmCodes.map(code => {
+    const serie = fechas.map(F => M[F][code] || 0);
+    return {
+      label: code,
+      data: serie,
+      borderWidth: 2,
+      tension: 0.2,
+      fill: false
+    };
+  });
+
+  charts.chartDiaFarmacia = new Chart(ctx, {
     type: "line",
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { position: "bottom" },
+        tooltip: {
+          callbacks: {
+            label: c => `${c.dataset.label}: ${c.parsed.y} unidades`
+          }
+        }
+      },
+      scales: {
+        x: { title: { display: true, text: "Fecha" } },
+        y: { beginAtZero: true, title: { display: true, text: "Unidades Consumidas" } }
+      }
+    }
+  });
+}
+
+function createChartHoraActividad() {
+  const ctx = document.getElementById("chartHoraActividad").getContext("2d");
+  const horas = Array(24).fill(0);
+  filteredData.forEach(r => {
+    if (r.Timestamp_obj) {
+      const h = r.Timestamp_obj.getHours();
+      horas[h] += r.Cantidad_num;
+    }
+  });
+
+  charts.chartHoraActividad = new Chart(ctx, {
+    type: "bar",
     data: {
-      labels: predData.map(p => p.Fecha),
+      labels: Array.from({length: 24}, (_, i) => `${i}:00`),
       datasets: [{
-        label: "Predicción",
-        data: predData.map(p => p.Prediccion),
-        borderColor: "rgba(255, 99, 132, 1)",
-        fill: false
+        label: "Unidades Consumidas",
+        data: horas,
+        backgroundColor: "rgba(54, 162, 235, 0.7)"
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+}
+
+function createTurnoChart() {
+  const ctx = document.getElementById("turnoChart").getContext("2d");
+  const turnoData = {};
+  filteredData.forEach(r => {
+    if (r.Turno) {
+      turnoData[r.Turno] = (turnoData[r.Turno] || 0) + r.Cantidad_num;
+    }
+  });
+
+  charts.turnoChart = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels: Object.keys(turnoData),
+      datasets: [{
+        data: Object.values(turnoData),
+        backgroundColor: [
+          "rgba(255, 99, 132, 0.7)",
+          "rgba(54, 162, 235, 0.7)",
+          "rgba(255, 206, 86, 0.7)",
+          "rgba(75, 192, 192, 0.7)"
+        ]
       }]
     },
     options: {
@@ -749,13 +960,649 @@ function loadPredicciones() {
   });
 }
 
-// Llamar en refreshDashboard
-// refreshDashboard = function() { ... loadPredicciones(); }
+function createTipoChart() {
+  const ctx = document.getElementById("tipoChart").getContext("2d");
+  const tipoData = {};
+  filteredData.forEach(r => {
+    if (r.Tipo) {
+      tipoData[r.Tipo] = (tipoData[r.Tipo] || 0) + r.Cantidad_num;
+    }
+  });
 
-// Inicializar tooltips
-const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
-const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+  charts.tipoChart = new Chart(ctx, {
+    type: "pie",
+    data: {
+      labels: Object.keys(tipoData),
+      datasets: [{
+        data: Object.values(tipoData),
+        backgroundColor: [
+          "rgba(153, 102, 255, 0.7)",
+          "rgba(255, 159, 64, 0.7)"
+        ]
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  });
+}
+
+function createTopAnestesiologosChart() {
+  const ctx = document.getElementById("topAnestesiologosChart").getContext("2d");
+
+  const anestData = {};
+  filteredData
+    .filter(r => r.Tipo === "Anestesiólogo")
+    .forEach(r => {
+      if (r.Nombre) {
+        anestData[r.Nombre] = (anestData[r.Nombre] || 0) + r.Cantidad_num;
+      }
+    });
+
+  const top = Object.entries(anestData)
+    .sort((a,b) => b[1] - a[1])
+    .slice(0,10);
+
+  charts.topAnestesiologosChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: top.map(x => x[0]),
+      datasets: [{
+        label: "Unidades Consumidas",
+        data: top.map(x => x[1]),
+        backgroundColor: "rgba(54, 162, 235, 0.7)",
+        borderColor:   "rgba(54, 162, 235, 1)",
+        borderWidth: 1
+      }]
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { beginAtZero: true }
+      }
+    }
+  });
+}
+
+function createTopCirculantesChart() {
+  const ctx = document.getElementById("topCirculantesChart").getContext("2d");
+
+  const circData = {};
+  filteredData
+    .filter(r => r.Tipo === "Circulante")
+    .forEach(r => {
+      if (r.Nombre) {
+        circData[r.Nombre] = (circData[r.Nombre] || 0) + r.Cantidad_num;
+      }
+    });
+
+  const top = Object.entries(circData)
+    .sort((a,b) => b[1] - a[1])
+    .slice(0,10);
+
+  charts.topCirculantesChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: top.map(x => x[0]),
+      datasets: [{
+        label: "Unidades Consumidas",
+        data: top.map(x => x[1]),
+        backgroundColor: "rgba(75, 192, 192, 0.7)",
+        borderColor:   "rgba(75, 192, 192, 1)",
+        borderWidth: 1
+      }]
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { beginAtZero: true }
+      }
+    }
+  });
+}
+
+function createPersonalQuirofanoChart() {
+  const ctx = document.getElementById("personalQuirofanoChart").getContext("2d");
+  const M = {};
+  filteredData.forEach(r => {
+    const q = r.Quirofano;
+    const tp = r.Tipo || "Sin tipo";
+    if (!M[q]) M[q] = { "Anestesiólogo": 0, "Circulante": 0 };
+    if (tp in M[q]) M[q][tp] += 1;
+  });
+
+  const quirofanos = Object.keys(M).sort();
+  const anestArr = quirofanos.map(q => M[q]["Anestesiólogo"]);
+  const circArr = quirofanos.map(q => M[q]["Circulante"]);
+
+  charts.personalQuirofanoChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: quirofanos,
+      datasets: [
+        {
+          label: "Anestesiólogos",
+          data: anestArr,
+          backgroundColor: "rgba(153, 102, 255, 0.7)",
+          borderColor: "rgba(153, 102, 255, 1)",
+          borderWidth: 1
+        },
+        {
+          label: "Circulantes",
+          data: circArr,
+          backgroundColor: "rgba(255, 159, 64, 0.7)",
+          borderColor: "rgba(255, 159, 64, 1)",
+          borderWidth: 1
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+}
+
+function createRatioPersonalChart() {
+  const ctx = document.getElementById("ratioPersonalChart").getContext("2d");
+  const M = {};
+  filteredData.forEach(r => {
+    if (!r.Fecha_iso) return;
+    if (!M[r.Fecha_iso]) M[r.Fecha_iso] = { anest: 0, circ: 0 };
+    if (r.Tipo === "Anestesiólogo") M[r.Fecha_iso].anest += r.Cantidad_num;
+    if (r.Tipo === "Circulante") M[r.Fecha_iso].circ += r.Cantidad_num;
+  });
+
+  const fechas = Object.keys(M).sort();
+  const ratios = fechas.map(F => {
+    const a = M[F].anest;
+    const c = M[F].circ;
+    return c > 0 ? (a / c) : 0;
+  });
+
+  const labels = fechas.map(F => {
+    const [y, m, d] = F.split("-");
+    return `${d}/${m}/${y}`;
+  });
+
+  charts.ratioPersonalChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: "Ratio Anest/Circ (consumo)",
+        data: ratios,
+        borderColor: "rgba(255, 99, 132, 1)",
+        backgroundColor: "rgba(255, 99, 132, 0.2)",
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+}
+
+function createTopKitsChart() {
+  const ctx = document.getElementById("topKitsChart").getContext("2d");
+  const kitsData = {};
+  filteredData.forEach(r => {
+    const kit = r.Nombre_kit;
+    if (kit && kit !== "*") {
+      kitsData[kit] = (kitsData[kit] || 0) + r.Cantidad_num;
+    }
+  });
+
+  const top = Object.entries(kitsData)
+    .sort((a,b)=> b[1]-a[1])
+    .slice(0,10);
+
+  charts.topKitsChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: top.map(x => x[0]),
+      datasets: [{
+        label: "Unidades Consumidas",
+        data: top.map(x => x[1]),
+        backgroundColor: "rgba(255, 99, 132, 0.7)",
+        borderColor:   "rgba(255, 99, 132, 1)",
+        borderWidth: 1
+      }]
+    },
+    options: {
+      indexAxis:"y",
+      responsive:true,
+      maintainAspectRatio:false,
+      scales: {
+        x: { beginAtZero:true }
+      }
+    }
+  });
+}
+
+function createKitsCantidadChart() {
+  const ctx = document.getElementById("kitsCantidadChart").getContext("2d");
+  const sumTipo = {};
+  filteredData.forEach(r => {
+    const tp = r.Tipo || "Sin tipo";
+    sumTipo[tp] = (sumTipo[tp] || 0) + r.Cantidad_num;
+  });
+
+  charts.kitsCantidadChart = new Chart(ctx, {
+    type:"doughnut",
+    data:{
+      labels:Object.keys(sumTipo),
+      datasets:[{
+        data:Object.values(sumTipo),
+        backgroundColor:[
+          "rgba(153, 102, 255, 0.7)",
+          "rgba(255, 159, 64, 0.7)"
+        ]
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false
+    }
+  });
+}
+
+function createKitsQuirofanoChart() {
+  const ctx = document.getElementById("kitsQuirofanoChart").getContext("2d");
+  const sumQ = {};
+  filteredData.forEach(r => {
+    const q = r.Quirofano;
+    sumQ[q] = (sumQ[q] || 0) + r.Cantidad_num;
+  });
+
+  const sortedQ = Object.entries(sumQ).sort((a,b)=>b[1]-a[1]);
+  charts.kitsQuirofanoChart = new Chart(ctx, {
+    type:"bar",
+    data:{
+      labels:sortedQ.map(x=>x[0]),
+      datasets:[{
+        label:"Unidades de Kits",
+        data:sortedQ.map(x=>x[1]),
+        backgroundColor:"rgba(75, 192, 192, 0.7)",
+        borderColor:"rgba(75, 192, 192, 1)",
+        borderWidth:1
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      scales:{
+        y:{ beginAtZero:true }
+      }
+    }
+  });
+}
+
+function createKitsTendenciaChart() {
+  const ctx = document.getElementById("kitsTendenciaChart").getContext("2d");
+  const M = {};
+  filteredData.forEach(r => {
+    if (!r.Fecha_iso) return;
+    const mes = r.Fecha_iso.slice(0, 7); // YYYY-MM
+    M[mes] = (M[mes] || 0) + r.Cantidad_num;
+  });
+
+  const meses = Object.keys(M).sort();
+  const data = meses.map(m => M[m]);
+
+  charts.kitsTendenciaChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: meses,
+      datasets: [{
+        label: "Unidades Mensuales",
+        data,
+        borderColor: "rgba(54, 162, 235, 1)",
+        backgroundColor: "rgba(54, 162, 235, 0.2)",
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+}
+
+// ======================================================================
+// Predicciones (Placeholder para modelo ARIMA o similar)
+// ======================================================================
+
+function createPrediccionChart() {
+  const ctx = document.getElementById("prediccionChart").getContext("2d");
+  // Histórico
+  const M = {};
+  filteredData.forEach(r => {
+    if (!r.Fecha_iso) return;
+    M[r.Fecha_iso] = (M[r.Fecha_iso] || 0) + r.Cantidad_num;
+  });
+  const fechasHist = Object.keys(M).sort();
+  const dataHist = fechasHist.map(F => M[F]);
+
+  // Predicción placeholder (ejemplo simple: promedio + tendencia)
+  const last = dataHist[dataHist.length - 1] || 0;
+  const predFechas = [];
+  const predData = [];
+  for (let i = 1; i <= 30; i++) {
+    const nextDate = new Date(fechasHist[fechasHist.length - 1]);
+    nextDate.setDate(nextDate.getDate() + i);
+    const label = formatDate(nextDate.getTime() / 86400000 + 25569); // Aproximación
+    predFechas.push(label);
+    predData.push(last * (1 + 0.01 * i)); // Ejemplo de crecimiento
+  }
+
+  charts.prediccionChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: [...fechasHist.map(F => formatDate(F)), ...predFechas],
+      datasets: [
+        {
+          label: "Histórico",
+          data: [...dataHist, ...Array(30).fill(null)],
+          borderColor: "rgba(54, 162, 235, 1)",
+          fill: false
+        },
+        {
+          label: "Predicción",
+          data: [...Array(dataHist.length).fill(null), ...predData],
+          borderColor: "rgba(255, 99, 132, 1)",
+          borderDash: [5, 5],
+          fill: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+}
+
+function updatePrediccionTable() {
+  const tb = document.getElementById("prediccionTableBody");
+  tb.innerHTML = "";
+  // Placeholder predicciones
+  for (let i = 1; i <= 30; i++) {
+    const nextDate = new Date();
+    nextDate.setDate(nextDate.getDate() + i);
+    const fecha = formatDate(nextDate.getTime() / 86400000 + 25569);
+    const pred = Math.round(100 + Math.random() * 50); // Placeholder
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${fecha}</td><td>${pred}</td>`;
+    tb.appendChild(tr);
+  }
+}
+
+// ======================================================================
+// Tabla
+// ======================================================================
+
+function updateDataTable() {
+  const tb = document.getElementById("dataTableBody");
+  tb.innerHTML = "";
+
+  const sorted = [...filteredData].sort((a,b) => (b.Timestamp_obj?.getTime() || 0) - (a.Timestamp_obj?.getTime() || 0));
+
+  const top100 = sorted.slice(0, 100);
+  top100.forEach(r => {
+    const tr = document.createElement("tr");
+    const cols = [
+      r.Fecha_formatted,
+      r.Farmacia,
+      r.Turno,
+      r.Tipo,
+      r.Nombre,
+      r.Quirofano,
+      r.Nombre_kit,
+      r.Cantidad,
+      r.Usuario,
+      r.Timestamp_formatted
+    ];
+    cols.forEach((val, idx) => {
+      const td = document.createElement("td");
+      td.textContent = val || "";
+      if (idx === 7) td.style.textAlign = "right";
+      tr.appendChild(td);
+    });
+    tb.appendChild(tr);
+  });
+}
+
+// ======================================================================
+// Filtros
+// ======================================================================
+
+function populateFilters() {
+  const sel = document.getElementById("filtroFarmacia");
+  while (sel.options.length > 1) sel.remove(1);
+  const farms = [...new Set(originalData.map(r => r.Farmacia).filter(f => f))];
+  farms.sort().forEach(f => {
+    const opt = document.createElement("option");
+    opt.value = f;
+    opt.textContent = f;
+    sel.appendChild(opt);
+  });
+}
+
+function applyFilters() {
+  const fd = document.getElementById("filtroDesde").value || null;
+  const fh = document.getElementById("filtroHasta").value || null;
+  const ff = document.getElementById("filtroFarmacia").value || "__ALL__";
+
+  filteredData = originalData.filter(r => {
+    if (ff !== "__ALL__" && r.Farmacia !== ff) return false;
+    if (fd && r.Fecha_iso && r.Fecha_iso < fd) return false;
+    if (fh && r.Fecha_iso && r.Fecha_iso > fh) return false;
+    return true;
+  });
+
+  refreshDashboard();
+}
+
+function resetFilters() {
+  document.getElementById("filtroDesde").value = "";
+  document.getElementById("filtroHasta").value = "";
+  document.getElementById("filtroFarmacia").value = "__ALL__";
+  filteredData = [...originalData];
+  refreshDashboard();
+}
+
+// ======================================================================
+// Exportar datos filtrados
+// ======================================================================
+
+function exportData() {
+  if (!filteredData.length) {
+    alert("No hay datos para exportar.");
+    return;
+  }
+  const headers = Object.keys(filteredData[0]);
+  const csvLines = [headers.join(",")];
+  filteredData.forEach(row => {
+    const line = headers.map(h => {
+      const v = row[h] == null ? "" : String(row[h]);
+      return `"${v.replace(/"/g, '""')}"`;
+    }).join(",");
+    csvLines.push(line);
+  });
+  const blob = new Blob([csvLines.join("\n")], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "datos_quirofanos.csv";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ======================================================================
+// Backend interacciones
+// ======================================================================
+
+function loadDataFromServer() {
+  showLoading();
+  google.script.run
+    .withSuccessHandler(function(rows) {
+      originalData = rows.map(r => {
+        const Fecha_iso = serialToISO(r.Fecha);
+        const Fecha_formatted = formatDate(r.Fecha);
+        const Cantidad_num = toNumber(r.Cantidad);
+        const Timestamp_obj = excelSerialToDate(r.Timestamp);
+        const Timestamp_formatted = formatDatetime(Timestamp_obj);
+        const Quirofano = normalizeQuirofano(r["Quirófano Nro"]);
+
+        return {
+          Fecha: r.Fecha || "",
+          Fecha_iso,
+          Fecha_formatted,
+          Farmacia: r.Farmacia || "",
+          Turno: r.Turno || "",
+          Tipo: r.Tipo || "",
+          Nombre: r.Nombre || "",
+          Quirofano,
+          Codigo_kit: r.Codigo_kit || "",
+          Nombre_kit: r.Nombre_kit || "",
+          Cantidad: r.Cantidad || "",
+          Cantidad_num,
+          Observaciones: r.Observaciones || "",
+          Usuario: r.Usuario || "",
+          Timestamp: r.Timestamp || "",
+          Timestamp_formatted,
+          Timestamp_obj
+        };
+      });
+
+      filteredData = [...originalData];
+      populateFilters();
+      refreshDashboard();
+      hideLoading();
+    })
+    .withFailureHandler(function(err) {
+      console.error("Error getDataSecure:", err);
+      hideLoading();
+      alert("Sesión inválida o expirada. Vuelva a iniciar sesión.");
+      currentUser = null;
+      currentToken = null;
+      showLoginScreen();
+    })
+    .getDataSecure(currentToken);
+}
+
+function doLogin(username, password) {
+  showLoading();
+  google.script.run
+    .withSuccessHandler(function(resp) {
+      hideLoading();
+      if (resp && resp.ok) {
+        currentUser = resp.user;
+        currentToken = resp.token;
+        document.getElementById("activeUser").textContent = currentUser;
+        showDashboardScreen();
+        loadDataFromServer();
+      } else {
+        showLoginError(resp && resp.msg ? resp.msg : "Error de autenticación");
+      }
+    })
+    .withFailureHandler(function(err) {
+      hideLoading();
+      console.error("loginAPI error:", err);
+      showLoginError("No se pudo autenticar. Intente de nuevo.");
+    })
+    .loginAPI(username, password);
+}
+
+function doLogout() {
+  currentUser = null;
+  currentToken = null;
+  showLoginScreen();
+}
+
+// ======================================================================
+// Render principal
+// ======================================================================
+
+function refreshDashboard() {
+  const k = calcKPIs(filteredData);
+  renderKPIs(k);
+
+  destroyCharts();
+  createChartDiaFarmacia();
+  createChartHoraActividad();
+  createTurnoChart();
+  createTipoChart();
+  createTopAnestesiologosChart();
+  createTopCirculantesChart();
+  createPersonalQuirofanoChart();
+  createRatioPersonalChart();
+  createTopKitsChart();
+  createKitsCantidadChart();
+  createKitsQuirofanoChart();
+  createKitsTendenciaChart();
+  createPrediccionChart();
+  updatePrediccionTable();
+
+  updateDataTable();
+}
+
+// ======================================================================
+// Init al cargar DOM
+// ======================================================================
+
+document.addEventListener("DOMContentLoaded", function() {
+  document.getElementById("loginForm").addEventListener("submit", function(ev) {
+    ev.preventDefault();
+    const u = document.getElementById("usuario").value.trim().toLowerCase();
+    const p = document.getElementById("codigo").value.trim();
+    doLogin(u, p);
+  });
+
+  document.getElementById("filtroDesde").addEventListener("change", applyFilters);
+  document.getElementById("filtroHasta").addEventListener("change", applyFilters);
+  document.getElementById("filtroFarmacia").addEventListener("change", applyFilters);
+  document.getElementById("btnReset").addEventListener("click", resetFilters);
+  document.getElementById("exportData").addEventListener("click", exportData);
+  document.getElementById("logoutBtn").addEventListener("click", doLogout);
+
+  if (AUTH_OK_INIT && SESSION_TOKEN) {
+    currentUser = INITIAL_USER || "";
+    currentToken = SESSION_TOKEN || "";
+    document.getElementById("activeUser").textContent = currentUser;
+    showDashboardScreen();
+    loadDataFromServer();
+  } else {
+    showLoginScreen();
+  }
+
+  // Inicializar tooltips
+  const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+  const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+});
 </script>
 
 </body>
 </html>
+```

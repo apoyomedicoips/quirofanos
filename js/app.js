@@ -1,3 +1,9 @@
+// Parámetros de Google Sheets
+const SHEET_ID = "13mzYK7HsvwiKyMXDpZJ3d1fLRvkwPYbOKUeedYSUh68";
+const SHEET_NAME = "Registros";
+// CSV directo de la hoja "Registros
+
+
 // CSV directo de la hoja "Registros"
 const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
 

@@ -1,19 +1,24 @@
+// ====================================================================
 // Parámetros de Google Sheets
+// ====================================================================
 const SHEET_ID = "13mzYK7HsvwiKyMXDpZJ3d1fLRvkwPYbOKUeedYSUh68";
-
-
 const SHEET_NAME = "Registros";
-// CSV directo de la hoja "Registros
 
-
-// CSV directo de la hoja "Registros"
+// Endpoint CSV público de la hoja
 const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
 
-// ---------------------------------------------------------------------
-// Utilidades generales
-// ---------------------------------------------------------------------
+// ====================================================================
+// Estado global en memoria (datos crudos y filtrados)
+// ====================================================================
+let DATA_ORIGINAL = [];   // registros completos
+let DATA_FILTRADA = [];   // registros luego de aplicar filtros activos
+let chartDiaFarmacia = null; // instancia Chart.js
 
-// Parser CSV robusto para comas dentro de comillas
+// ====================================================================
+// Utilidades de parseo y formateo
+// ====================================================================
+
+// Parser CSV robusto hecho a mano (evita dependencias adicionales)
 function parseCSV(text) {
     const rows = [];
     let current = [];
@@ -39,7 +44,6 @@ function parseCSV(text) {
                 current = [];
                 value = "";
             }
-            // tolerar \r\n
             if (c === "\r" && next === "\n") {
                 i++;
             }
@@ -47,6 +51,7 @@ function parseCSV(text) {
             value += c;
         }
     }
+
     if (value !== "" || current.length > 0) {
         current.push(value);
         rows.push(current);
@@ -54,12 +59,12 @@ function parseCSV(text) {
     return rows;
 }
 
-// Normaliza fecha dd/mm/yyyy -> Date
+// Fecha "dd/mm/yyyy" -> Date
 function parseFechaDIA(str) {
     if (!str || typeof str !== "string") return null;
     const parts = str.trim().split("/");
     if (parts.length !== 3) return null;
-    const [dd, mm, yyyy] = parts.map(p => p.trim());
+    const [dd, mm, yyyy] = parts.map(s => s.trim());
     const day = parseInt(dd, 10);
     const mon = parseInt(mm, 10) - 1;
     const yr = parseInt(yyyy, 10);
@@ -68,10 +73,9 @@ function parseFechaDIA(str) {
     return d;
 }
 
-// Normaliza timestamp dd/mm/yyyy hh:mm:ss -> Date
+// Timestamp "dd/mm/yyyy hh:mm:ss" -> Date
 function parseFechaTimestamp(str) {
     if (!str || typeof str !== "string") return null;
-    // ejemplo "20/06/2025 10:50:22"
     const [fechaParte, horaParte] = str.trim().split(" ");
     if (!fechaParte) return null;
     const base = parseFechaDIA(fechaParte);
@@ -88,16 +92,7 @@ function parseFechaTimestamp(str) {
     return base;
 }
 
-// Convierte Date -> "YYYY-MM-DD"
-function toISODate(d) {
-    if (!(d instanceof Date) || isNaN(d.getTime())) return null;
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const da = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${da}`;
-}
-
-// Convierte Date -> "DD/MM/YYYY"
+// Date -> "DD/MM/YYYY"
 function toDMY(d) {
     if (!(d instanceof Date) || isNaN(d.getTime())) return "";
     const da = String(d.getDate()).padStart(2, "0");
@@ -106,59 +101,66 @@ function toDMY(d) {
     return `${da}/${m}/${y}`;
 }
 
-// Sanitiza string
+// Date -> "YYYY-MM-DD" (para filtros <input type="date">)
+function toISODate(d) {
+    if (!(d instanceof Date) || isNaN(d.getTime())) return null;
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const da = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${da}`;
+}
+
 function normStr(x) {
     if (x === null || x === undefined) return "";
     return String(x).trim();
 }
 
-// A número, por ejemplo Cantidad
+// Cantidad numérica
 function toNumber(x) {
     if (x === null || x === undefined || x === "") return 0;
     const n = Number(String(x).replace(",", "."));
     return Number.isFinite(n) ? n : 0;
 }
 
-// ---------------------------------------------------------------------
-// Descarga de datos y preparación
-// ---------------------------------------------------------------------
-
+// ====================================================================
+// Carga de datos desde Google Sheets (CSV público)
+// ====================================================================
 async function cargarDatos() {
-    const resp = await fetch(CSV_URL, {
-        cache: "no-store"
-    });
+    const resp = await fetch(CSV_URL, { cache: "no-store" });
     const text = await resp.text();
     const rows = parseCSV(text);
+
     if (!rows.length) {
-        console.error("Sin filas en CSV");
+        console.error("CSV vacío o no accesible");
         return [];
     }
 
-    // Primera fila es encabezado
+    // Cabecera
     const header = rows[0].map(h => normStr(h));
-    const body = rows.slice(1);
+    const body   = rows.slice(1);
 
-    // Mapeo esperado
+    // Transformar cada fila en objeto usando encabezados
+    const registros = body.map(row => {
+        const tmp = {};
+        header.forEach((colName, j) => {
+            tmp[colName] = row[j] !== undefined ? row[j] : "";
+        });
+        return tmp;
+    });
+
+    // Proyección al esquema interno
+    // Columnas esperadas:
     // Fecha, Farmacia, Turno, Tipo, Nombre, Quirófano Nro,
     // Codigo_kit, Nombre_kit, Cantidad, Observaciones, Usuario, Timestamp
-    function rowToObj(r) {
-        const o = {};
-        header.forEach((colName, j) => {
-            o[colName] = r[j] !== undefined ? r[j] : "";
-        });
-        return o;
-    }
-
-    const registros = body
-        .map(rowToObj)
+    const data = registros
         .map(raw => {
             const fechaCir = parseFechaDIA(normStr(raw["Fecha"]));
             const fechaTS  = parseFechaTimestamp(normStr(raw["Timestamp"]));
 
             return {
-                Fecha_raw: normStr(raw["Fecha"]),
-                Fecha: fechaCir,
-                Fecha_iso: toISODate(fechaCir),
+                Fecha: fechaCir,                               // Date
+                Fecha_raw: normStr(raw["Fecha"]),              // string
+                Fecha_iso: toISODate(fechaCir),                // "YYYY-MM-DD"
 
                 Farmacia: normStr(raw["Farmacia"]),
                 Turno: normStr(raw["Turno"]),
@@ -171,36 +173,103 @@ async function cargarDatos() {
                 Observaciones: normStr(raw["Observaciones"]),
                 Usuario: normStr(raw["Usuario"]),
 
+                Timestamp: fechaTS,                            // Date
                 Timestamp_raw: normStr(raw["Timestamp"]),
-                Timestamp: fechaTS,
-                Timestamp_iso: toISODate(fechaTS)
             };
         })
+        // descartar filas totalmente vacías o sin farmacia/fecha
         .filter(r => r.Fecha_iso !== null && r.Farmacia !== "");
 
-    return registros;
+    return data;
 }
 
-// ---------------------------------------------------------------------
-// Cálculos estadísticos
-// ---------------------------------------------------------------------
+// ====================================================================
+// Filtros en UI
+// ====================================================================
+function leerFiltros() {
+    const inpDesde = document.getElementById("filtroDesde");
+    const inpHasta = document.getElementById("filtroHasta");
+    const selFarm  = document.getElementById("filtroFarmacia");
 
-function resumenGlobal(registros) {
-    // total descargas
-    const totalDescargas = registros.length;
+    const fDesde = inpDesde && inpDesde.value ? inpDesde.value : null; // "YYYY-MM-DD"
+    const fHasta = inpHasta && inpHasta.value ? inpHasta.value : null; // "YYYY-MM-DD"
+    const fFarm  = selFarm  && selFarm.value  ? selFarm.value : "__ALL__";
 
-    // total unidades (suma Cantidad)
-    const totalUnidades = registros.reduce((acc, r) => acc + r.Cantidad, 0);
+    return { fDesde, fHasta, fFarm };
+}
 
-    // farmacias únicas
-    const setFarm = new Set(registros.map(r => r.Farmacia));
-    const totalFarmacias = setFarm.size;
+function aplicarFiltros() {
+    const { fDesde, fHasta, fFarm } = leerFiltros();
+
+    DATA_FILTRADA = DATA_ORIGINAL.filter(r => {
+        // filtrar por farmacia
+        if (fFarm !== "__ALL__" && r.Farmacia !== fFarm) {
+            return false;
+        }
+
+        // filtrar por rango de fecha de cirugía (r.Fecha_iso)
+        if (fDesde && r.Fecha_iso && r.Fecha_iso < fDesde) {
+            return false;
+        }
+        if (fHasta && r.Fecha_iso && r.Fecha_iso > fHasta) {
+            return false;
+        }
+
+        return true;
+    });
+}
+
+// llena el combo de farmacias disponibles según DATA_ORIGINAL
+function poblarFarmacias() {
+    const selFarm = document.getElementById("filtroFarmacia");
+    if (!selFarm) return;
+
+    // recolectar únicas
+    const farms = Array.from(new Set(DATA_ORIGINAL.map(r => r.Farmacia))).sort();
+
+    // limpiar opciones antiguas
+    while (selFarm.firstChild) selFarm.removeChild(selFarm.firstChild);
+
+    // opción Todas
+    const optAll = document.createElement("option");
+    optAll.value = "__ALL__";
+    optAll.textContent = "Todas";
+    selFarm.appendChild(optAll);
+
+    farms.forEach(f => {
+        const o = document.createElement("option");
+        o.value = f;
+        o.textContent = f;
+        selFarm.appendChild(o);
+    });
+    selFarm.value = "__ALL__";
+}
+
+// reset de filtros
+function resetFiltros() {
+    const inpDesde = document.getElementById("filtroDesde");
+    const inpHasta = document.getElementById("filtroHasta");
+    const selFarm  = document.getElementById("filtroFarmacia");
+    if (inpDesde) inpDesde.value = "";
+    if (inpHasta) inpHasta.value = "";
+    if (selFarm)  selFarm.value  = "__ALL__";
+}
+
+// ====================================================================
+// Cálculos estadísticos en base a DATA_FILTRADA
+// ====================================================================
+
+function calcKPIs(data) {
+    const totalDescargas = data.length;
+    const totalUnidades = data.reduce((acc, r) => acc + r.Cantidad, 0);
+
+    const farmSet = new Set(data.map(r => r.Farmacia));
+    const farmaciasActivas = farmSet.size;
 
     // rango de fechas
-    const fechasValidas = registros
+    const fechasValidas = data
         .map(r => r.Fecha)
         .filter(d => d instanceof Date && !isNaN(d.getTime()));
-
     let minFecha = null;
     let maxFecha = null;
     if (fechasValidas.length > 0) {
@@ -208,180 +277,188 @@ function resumenGlobal(registros) {
         maxFecha = new Date(Math.max(...fechasValidas.map(d => d.getTime())));
     }
 
+    // promedio diario = descargas / nro de días distintos
+    const diasSet = new Set(data.map(r => r.Fecha_iso));
+    const nDias = diasSet.size || 1;
+    const promedioDiario = totalDescargas / nDias;
+
     return {
         totalDescargas,
         totalUnidades,
-        totalFarmacias,
+        farmaciasActivas,
         minFecha,
-        maxFecha
+        maxFecha,
+        promedioDiario
     };
 }
 
-// tabla diaria farmacia: Cantidad de descargas (conteo de filas) y total unidades (suma Cantidad)
-function estadisticaDiaFarmacia(registros) {
-    // estructura:
-    // stats[fecha_iso][farmacia] = { nDescargas, totalUnidades }
+// tabla agregada día-farmacia, para gráfico
+function buildDiaFarmacia(data) {
+    // stats[fecha_iso][farmacia] = count descargas
     const stats = {};
-
-    for (const r of registros) {
+    for (const r of data) {
         if (!r.Fecha_iso || !r.Farmacia) continue;
-        if (!stats[r.Fecha_iso]) {
-            stats[r.Fecha_iso] = {};
-        }
+        if (!stats[r.Fecha_iso]) stats[r.Fecha_iso] = {};
         if (!stats[r.Fecha_iso][r.Farmacia]) {
-            stats[r.Fecha_iso][r.Farmacia] = { nDescargas: 0, totalUnidades: 0 };
+            stats[r.Fecha_iso][r.Farmacia] = { nDescargas: 0 };
         }
         stats[r.Fecha_iso][r.Farmacia].nDescargas += 1;
-        stats[r.Fecha_iso][r.Farmacia].totalUnidades += r.Cantidad;
     }
 
-    // también generamos lista tabular plana para la tabla HTML
-    const filasTabla = [];
+    // flatten para render
+    const filas = [];
     Object.keys(stats).sort().forEach(fecha_iso => {
         Object.keys(stats[fecha_iso]).sort().forEach(farm => {
-            filasTabla.push({
+            filas.push({
                 fecha_iso,
                 farmacia: farm,
-                nDescargas: stats[fecha_iso][farm].nDescargas,
-                totalUnidades: stats[fecha_iso][farm].totalUnidades
+                nDescargas: stats[fecha_iso][farm].nDescargas
             });
         });
     });
 
-    return {
-        stats,
-        filasTabla
-    };
+    return filas;
 }
 
-// Para el gráfico, construir series por farmacia a lo largo del tiempo
-function prepararSeriesGraficoDiaFarmacia(estad) {
-    // fechas ordenadas
-    const fechas = [...new Set(
-        estad.filasTabla.map(f => f.fecha_iso)
-    )].sort();
+// prepara datasets Chart.js
+function prepararSeriesParaChart(filasDiaFarm) {
+    const fechas = [...new Set(filasDiaFarm.map(f => f.fecha_iso))].sort();
+    const farmacias = [...new Set(filasDiaFarm.map(f => f.farmacia))].sort();
 
-    // farmacias distintas
-    const farmacias = [...new Set(
-        estad.filasTabla.map(f => f.farmacia)
-    )].sort();
-
-    // dataset por farmacia: vector alineado con fechas
     const datasets = farmacias.map(farm => {
-        const dataFarm = fechas.map(fecha => {
-            const match = estad.filasTabla.find(
+        const serie = fechas.map(fecha => {
+            const found = filasDiaFarm.find(
                 x => x.fecha_iso === fecha && x.farmacia === farm
             );
-            return match ? match.nDescargas : 0;
+            return found ? found.nDescargas : 0;
         });
         return {
             label: farm,
-            data: dataFarm,
+            data: serie,
             borderWidth: 2,
             tension: 0.2,
             fill: false
         };
     });
 
-    return { labels: fechas, datasets };
-}
-
-// ---------------------------------------------------------------------
-// Renderizado en DOM
-// ---------------------------------------------------------------------
-
-function renderResumenCard(idSpan, valor) {
-    const el = document.getElementById(idSpan);
-    if (el) el.textContent = valor;
-}
-
-function renderRangoFechas(idSpan, minD, maxD) {
-    const el = document.getElementById(idSpan);
-    if (!el) return;
-    if (!minD || !maxD) {
-        el.textContent = "Sin datos";
-    } else {
-        el.textContent = `${toDMY(minD)} - ${toDMY(maxD)}`;
-    }
-}
-
-function renderTablaDiaFarmacia(tbodyId, filas) {
-    const tbody = document.getElementById(tbodyId);
-    if (!tbody) return;
-
-    // limpiamos
-    while (tbody.firstChild) {
-        tbody.removeChild(tbody.firstChild);
-    }
-
-    // filas ordenadas por fecha y luego farmacia
-    filas.sort((a, b) => {
-        if (a.fecha_iso < b.fecha_iso) return -1;
-        if (a.fecha_iso > b.fecha_iso) return 1;
-        if (a.farmacia < b.farmacia) return -1;
-        if (a.farmacia > b.farmacia) return 1;
-        return 0;
+    // etiquetas en formato dd/mm/yyyy
+    const labels = fechas.map(fecha_iso => {
+        const [y, m, d] = fecha_iso.split("-");
+        return `${d}/${m}/${y}`;
     });
 
-    for (const f of filas) {
+    return { labels, datasets };
+}
+
+// ====================================================================
+// Render en el DOM
+// ====================================================================
+
+function renderKPIs(kpis) {
+    const elDesc = document.getElementById("kpiDescargas");
+    const elProm = document.getElementById("kpiPromedioDiario");
+    const elFarm = document.getElementById("kpiFarmaciasActivas");
+
+    if (elDesc) elDesc.textContent = kpis.totalDescargas.toLocaleString("es-PY");
+    if (elProm) elProm.textContent = kpis.promedioDiario.toFixed(2);
+    if (elFarm) elFarm.textContent = kpis.farmaciasActivas.toLocaleString("es-PY");
+}
+
+function renderTablaDetalle(data) {
+    // tablaDetalle > tbody
+    const tabla = document.getElementById("tablaDetalle");
+    if (!tabla) return;
+    const tbody = tabla.querySelector("tbody");
+    if (!tbody) return;
+
+    // limpiar
+    while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+
+    // ordenar por Timestamp descendente
+    const ordenados = [...data].sort((a, b) => {
+        const ta = a.Timestamp instanceof Date ? a.Timestamp.getTime() : 0;
+        const tb = b.Timestamp instanceof Date ? b.Timestamp.getTime() : 0;
+        return tb - ta;
+    });
+
+    // máximo 100 filas para no explotar el DOM
+    const limite = Math.min(100, ordenados.length);
+
+    for (let i = 0; i < limite; i++) {
+        const r = ordenados[i];
         const tr = document.createElement("tr");
 
-        // fecha_iso como DD/MM/YYYY
-        const dparts = f.fecha_iso.split("-");
-        let fechaDMY = f.fecha_iso;
-        if (dparts.length === 3) {
-            const [yyyy, mm, dd] = dparts;
-            fechaDMY = `${dd}/${mm}/${yyyy}`;
-        }
-
         const tdFecha = document.createElement("td");
-        tdFecha.textContent = fechaDMY;
-        tdFecha.className = "px-2 py-1 border";
+        tdFecha.textContent = toDMY(r.Fecha);
+        tr.appendChild(tdFecha);
 
         const tdFarm = document.createElement("td");
-        tdFarm.textContent = f.farmacia;
-        tdFarm.className = "px-2 py-1 border";
+        tdFarm.textContent = r.Farmacia;
+        tr.appendChild(tdFarm);
 
-        const tdDesc = document.createElement("td");
-        tdDesc.textContent = f.nDescargas;
-        tdDesc.className = "px-2 py-1 text-right border";
+        const tdTurno = document.createElement("td");
+        tdTurno.textContent = r.Turno;
+        tr.appendChild(tdTurno);
+
+        const tdTipo = document.createElement("td");
+        tdTipo.textContent = r.Tipo;
+        tr.appendChild(tdTipo);
+
+        const tdNombre = document.createElement("td");
+        tdNombre.textContent = r.Nombre;
+        tr.appendChild(tdNombre);
+
+        const tdQx = document.createElement("td");
+        tdQx.textContent = r.Quirofano;
+        tr.appendChild(tdQx);
+
+        const tdKit = document.createElement("td");
+        tdKit.textContent = r.Nombre_kit;
+        tr.appendChild(tdKit);
 
         const tdCant = document.createElement("td");
-        tdCant.textContent = f.totalUnidades;
-        tdCant.className = "px-2 py-1 text-right border";
-
-        tr.appendChild(tdFecha);
-        tr.appendChild(tdFarm);
-        tr.appendChild(tdDesc);
+        tdCant.textContent = r.Cantidad;
+        tdCant.style.textAlign = "right";
         tr.appendChild(tdCant);
+
+        const tdUser = document.createElement("td");
+        tdUser.textContent = r.Usuario;
+        tr.appendChild(tdUser);
+
+        const tdTS = document.createElement("td");
+        if (r.Timestamp instanceof Date && !isNaN(r.Timestamp.getTime())) {
+            const d = r.Timestamp;
+            const hh = String(d.getHours()).padStart(2, "0");
+            const mi = String(d.getMinutes()).padStart(2, "0");
+            const ss = String(d.getSeconds()).padStart(2, "0");
+            tdTS.textContent = `${toDMY(d)} ${hh}:${mi}:${ss}`;
+        } else {
+            tdTS.textContent = r.Timestamp_raw;
+        }
+        tr.appendChild(tdTS);
 
         tbody.appendChild(tr);
     }
 }
 
-let graficoFarmDia = null;
-
-function renderGraficoDiaFarmacia(canvasId, chartData) {
-    const canvas = document.getElementById(canvasId);
+function renderChartDiaFarmacia(filasDiaFarm) {
+    const canvas = document.getElementById("chartDiaFarmacia");
     if (!canvas) return;
-
     const ctx = canvas.getContext("2d");
 
-    // destruir gráfico previo si existe
-    if (graficoFarmDia) {
-        graficoFarmDia.destroy();
-        graficoFarmDia = null;
+    const { labels, datasets } = prepararSeriesParaChart(filasDiaFarm);
+
+    // destruir gráfico previo
+    if (chartDiaFarmacia) {
+        chartDiaFarmacia.destroy();
+        chartDiaFarmacia = null;
     }
 
-    graficoFarmDia = new Chart(ctx, {
+    chartDiaFarmacia = new Chart(ctx, {
         type: "line",
         data: {
-            labels: chartData.labels.map(fecha_iso => {
-                // convertir a DD/MM/YYYY para ejes
-                const [yyyy, mm, dd] = fecha_iso.split("-");
-                return `${dd}/${mm}/${yyyy}`;
-            }),
-            datasets: chartData.datasets
+            labels,
+            datasets
         },
         options: {
             responsive: true,
@@ -391,9 +468,7 @@ function renderGraficoDiaFarmacia(canvasId, chartData) {
                 intersect: false
             },
             plugins: {
-                legend: {
-                    position: "bottom"
-                },
+                legend: { position: "bottom" },
                 tooltip: {
                     callbacks: {
                         label: function(ctx) {
@@ -405,138 +480,67 @@ function renderGraficoDiaFarmacia(canvasId, chartData) {
             },
             scales: {
                 x: {
-                    title: { display: true, text: "Fecha" },
-                    ticks: {
-                        maxRotation: 0,
-                        minRotation: 0
-                    }
+                    title: { display: true, text: "Fecha cirugía" },
+                    ticks: { maxRotation: 0, minRotation: 0 }
                 },
                 y: {
                     beginAtZero: true,
-                    title: { display: true, text: "Descargas (conteo de filas)" }
+                    title: { display: true, text: "Descargas (conteo registros)" }
                 }
             }
         }
     });
 }
 
-// ---------------------------------------------------------------------
-// Control principal
-// ---------------------------------------------------------------------
+// ====================================================================
+// Ciclo de render completo tras filtros
+// ====================================================================
+function refrescarVista() {
+    aplicarFiltros();  // actualiza DATA_FILTRADA según UI
 
-async function main() {
-    // 1. Cargar datos crudos desde Google Sheets
-    const registros = await cargarDatos();
+    const kpis = calcKPIs(DATA_FILTRADA);
+    renderKPIs(kpis);
 
-    // 2. Calcular resúmenes
-    const resumen = resumenGlobal(registros);
-    const estadFarmDia = estadisticaDiaFarmacia(registros);
-    const chartFarmDia = prepararSeriesGraficoDiaFarmacia(estadFarmDia);
+    const filasDiaFarm = buildDiaFarmacia(DATA_FILTRADA);
+    renderChartDiaFarmacia(filasDiaFarm);
 
-    // 3. Poblar tarjetas resumen
-    renderResumenCard("card-total-descargas", resumen.totalDescargas);
-    renderResumenCard("card-total-unidades", resumen.totalUnidades);
-    renderResumenCard("card-total-farmacias", resumen.totalFarmacias);
-    renderRangoFechas("card-rango-fechas", resumen.minFecha, resumen.maxFecha);
-
-    // 4. Tabla de descargas por día y farmacia
-    renderTablaDiaFarmacia("tbody-dia-farmacia", estadFarmDia.filasTabla);
-
-    // 5. Gráfico línea por farmacia
-    renderGraficoDiaFarmacia("chart-dia-farmacia", chartFarmDia);
-
-    // 6. Tabla cruda base (opcional) para auditoría
-    renderTablaDetalle("tbody-detalle", registros);
+    renderTablaDetalle(DATA_FILTRADA);
 }
 
-// Render tabla detalle transaccional
-function renderTablaDetalle(tbodyId, registros) {
-    const tbody = document.getElementById(tbodyId);
-    if (!tbody) return;
-
-    // limpio
-    while (tbody.firstChild) {
-        tbody.removeChild(tbody.firstChild);
+// ====================================================================
+// Inicialización principal
+// ====================================================================
+async function init() {
+    try {
+        DATA_ORIGINAL = await cargarDatos();
+    } catch (err) {
+        console.error("Error cargando datos:", err);
+        alert("No fue posible descargar datos desde la hoja. Revise permisos públicos y nombre de la hoja.");
+        return;
     }
 
-    // Ordenar descendente por Fecha + Timestamp
-    registros.sort((a, b) => {
-        const ta = a.Timestamp instanceof Date ? a.Timestamp.getTime() : 0;
-        const tb = b.Timestamp instanceof Date ? b.Timestamp.getTime() : 0;
-        return tb - ta;
+    // poblar lista de farmacias
+    poblarFarmacias();
+
+    // primera carga de vista
+    refrescarVista();
+
+    // listeners de filtros
+    const inpDesde = document.getElementById("filtroDesde");
+    const inpHasta = document.getElementById("filtroHasta");
+    const selFarm  = document.getElementById("filtroFarmacia");
+    const btnReset = document.getElementById("btnReset");
+
+    if (inpDesde) inpDesde.addEventListener("change", refrescarVista);
+    if (inpHasta) inpHasta.addEventListener("change", refrescarVista);
+    if (selFarm)  selFarm.addEventListener("change", refrescarVista);
+    if (btnReset) btnReset.addEventListener("click", () => {
+        resetFiltros();
+        refrescarVista();
     });
-
-    for (const r of registros) {
-        const tr = document.createElement("tr");
-
-        const tdFecha = document.createElement("td");
-        tdFecha.textContent = toDMY(r.Fecha);
-        tdFecha.className = "px-2 py-1 border";
-
-        const tdFarm = document.createElement("td");
-        tdFarm.textContent = r.Farmacia;
-        tdFarm.className = "px-2 py-1 border";
-
-        const tdTurno = document.createElement("td");
-        tdTurno.textContent = r.Turno;
-        tdTurno.className = "px-2 py-1 border";
-
-        const tdTipo = document.createElement("td");
-        tdTipo.textContent = r.Tipo;
-        tdTipo.className = "px-2 py-1 border";
-
-        const tdNombre = document.createElement("td");
-        tdNombre.textContent = r.Nombre;
-        tdNombre.className = "px-2 py-1 border";
-
-        const tdKit = document.createElement("td");
-        tdKit.textContent = r.Nombre_kit;
-        tdKit.className = "px-2 py-1 border";
-
-        const tdCant = document.createElement("td");
-        tdCant.textContent = r.Cantidad;
-        tdCant.className = "px-2 py-1 text-right border";
-
-        const tdUser = document.createElement("td");
-        tdUser.textContent = r.Usuario;
-        tdUser.className = "px-2 py-1 border";
-
-        const tdTS = document.createElement("td");
-        if (r.Timestamp instanceof Date && !isNaN(r.Timestamp.getTime())) {
-            const d = r.Timestamp;
-            const fecha = toDMY(d);
-            const hh = String(d.getHours()).padStart(2, "0");
-            const mi = String(d.getMinutes()).padStart(2, "0");
-            const ss = String(d.getSeconds()).padStart(2, "0");
-            tdTS.textContent = `${fecha} ${hh}:${mi}:${ss}`;
-        } else {
-            tdTS.textContent = r.Timestamp_raw;
-        }
-        tdTS.className = "px-2 py-1 border";
-
-        tr.appendChild(tdFecha);
-        tr.appendChild(tdFarm);
-        tr.appendChild(tdTurno);
-        tr.appendChild(tdTipo);
-        tr.appendChild(tdNombre);
-        tr.appendChild(tdKit);
-        tr.appendChild(tdCant);
-        tr.appendChild(tdUser);
-        tr.appendChild(tdTS);
-
-        tbody.appendChild(tr);
-    }
 }
 
-// ---------------------------------------------------------------------
-// Inicialización al cargar la página
-// ---------------------------------------------------------------------
+// Levanta todo al cargar el DOM
 document.addEventListener("DOMContentLoaded", () => {
-    main().catch(err => {
-        console.error("Error en main():", err);
-        const errBox = document.getElementById("error-box");
-        if (errBox) {
-            errBox.textContent = "No fue posible cargar los datos. Verifique permisos de la hoja y CORS.";
-        }
-    });
+    init();
 });

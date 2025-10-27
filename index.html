@@ -13,6 +13,16 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 
+    <!-- Firebase SDK (Modular v9+) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+        // Expose to global scope for use in inline script
+        window.firebaseModules = { initializeApp, getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, getFirestore, collection, getDocs };
+    </script>
+
     <style>
         :root {
             --bg-main: #0f172a;
@@ -240,11 +250,11 @@
 
         <form id="loginForm">
             <div class="mb-3">
-                <label for="usuario" class="form-label">Usuario</label>
-                <input type="text" class="form-control" id="usuario" required>
+                <label for="usuario" class="form-label">Usuario (email)</label>
+                <input type="email" class="form-control" id="usuario" required>
             </div>
             <div class="mb-3">
-                <label for="codigo" class="form-label">Código de acceso</label>
+                <label for="codigo" class="form-label">Código de acceso (contraseña)</label>
                 <input type="password" class="form-control" id="codigo" required>
             </div>
             <button type="submit" class="btn btn-primary w-100">
@@ -730,11 +740,22 @@
 
 <script>
 // ======================================================================
-// Variables inyectadas desde Code.gs
+// Firebase Config - Replace with your project config
 // ======================================================================
-const AUTH_OK_INIT   = <?= authOk ? "true" : "false" ?>;
-const SESSION_TOKEN  = "<?= sessionToken ?>";
-const INITIAL_USER   = "<?= usuario ?>";
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+// Initialize Firebase
+const { initializeApp, getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, getFirestore, collection, getDocs } = window.firebaseModules;
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
 // ======================================================================
 // Estado global en el cliente
@@ -743,7 +764,6 @@ let originalData = [];
 let filteredData = [];
 let charts = {};
 let currentUser = null;
-let currentToken = null;
 
 // ======================================================================
 // Utilidades de datos
@@ -1535,85 +1555,81 @@ function exportData() {
 }
 
 // ======================================================================
-// Backend interacciones
+// Backend interacciones con Firebase
 // ======================================================================
 
-function loadDataFromServer() {
+async function loadDataFromServer() {
   showLoading();
-  google.script.run
-    .withSuccessHandler(function(rows) {
-      originalData = rows.map(r => {
-        const Fecha_iso = serialToISO(r.Fecha);
-        const Fecha_formatted = formatDate(r.Fecha);
-        const Cantidad_num = toNumber(r.Cantidad);
-        const Timestamp_obj = excelSerialToDate(r.Timestamp);
-        const Timestamp_formatted = formatDatetime(Timestamp_obj);
-        const Quirofano = normalizeQuirofano(r["Quirófano Nro"]);
+  try {
+    const querySnapshot = await getDocs(collection(db, "registros"));
+    originalData = querySnapshot.docs.map(doc => {
+      const r = doc.data();
+      const Fecha_iso = serialToISO(r.Fecha);
+      const Fecha_formatted = formatDate(r.Fecha);
+      const Cantidad_num = toNumber(r.Cantidad);
+      const Timestamp_obj = excelSerialToDate(r.Timestamp);
+      const Timestamp_formatted = formatDatetime(Timestamp_obj);
+      const Quirofano = normalizeQuirofano(r["Quirófano Nro"]);
 
-        return {
-          Fecha: r.Fecha || "",
-          Fecha_iso,
-          Fecha_formatted,
-          Farmacia: r.Farmacia || "",
-          Turno: r.Turno || "",
-          Tipo: r.Tipo || "",
-          Nombre: r.Nombre || "",
-          Quirofano,
-          Codigo_kit: r.Codigo_kit || "",
-          Nombre_kit: r.Nombre_kit || "",
-          Cantidad: r.Cantidad || "",
-          Cantidad_num,
-          Observaciones: r.Observaciones || "",
-          Usuario: r.Usuario || "",
-          Timestamp: r.Timestamp || "",
-          Timestamp_formatted,
-          Timestamp_obj
-        };
-      });
+      return {
+        Fecha: r.Fecha || "",
+        Fecha_iso,
+        Fecha_formatted,
+        Farmacia: r.Farmacia || "",
+        Turno: r.Turno || "",
+        Tipo: r.Tipo || "",
+        Nombre: r.Nombre || "",
+        Quirofano,
+        Codigo_kit: r.Codigo_kit || "",
+        Nombre_kit: r.Nombre_kit || "",
+        Cantidad: r.Cantidad || "",
+        Cantidad_num,
+        Observaciones: r.Observaciones || "",
+        Usuario: r.Usuario || "",
+        Timestamp: r.Timestamp || "",
+        Timestamp_formatted,
+        Timestamp_obj
+      };
+    });
 
-      filteredData = [...originalData];
-      populateFilters();
-      refreshDashboard();
-      hideLoading();
-    })
-    .withFailureHandler(function(err) {
-      console.error("Error getDataSecure:", err);
-      hideLoading();
-      alert("Sesión inválida o expirada. Vuelva a iniciar sesión.");
-      currentUser = null;
-      currentToken = null;
-      showLoginScreen();
-    })
-    .getDataSecure(currentToken);
+    filteredData = [...originalData];
+    populateFilters();
+    refreshDashboard();
+  } catch (err) {
+    console.error("Error loading data:", err);
+    alert("Error al cargar datos. Verifique su conexión o permisos.");
+    doLogout();
+  } finally {
+    hideLoading();
+  }
 }
 
 function doLogin(username, password) {
   showLoading();
-  google.script.run
-    .withSuccessHandler(function(resp) {
+  signInWithEmailAndPassword(auth, username, password)
+    .then((userCredential) => {
       hideLoading();
-      if (resp && resp.ok) {
-        currentUser = resp.user;
-        currentToken = resp.token;
-        document.getElementById("activeUser").textContent = currentUser;
-        showDashboardScreen();
-        loadDataFromServer();
-      } else {
-        showLoginError(resp && resp.msg ? resp.msg : "Error de autenticación");
-      }
+      currentUser = userCredential.user.email;
+      document.getElementById("activeUser").textContent = currentUser;
+      showDashboardScreen();
+      loadDataFromServer();
     })
-    .withFailureHandler(function(err) {
+    .catch((error) => {
       hideLoading();
-      console.error("loginAPI error:", err);
+      console.error("login error:", error);
       showLoginError("No se pudo autenticar. Intente de nuevo.");
-    })
-    .loginAPI(username, password);
+    });
 }
 
 function doLogout() {
-  currentUser = null;
-  currentToken = null;
-  showLoginScreen();
+  signOut(auth)
+    .then(() => {
+      currentUser = null;
+      showLoginScreen();
+    })
+    .catch((error) => {
+      console.error("logout error:", error);
+    });
 }
 
 // ======================================================================
@@ -1663,15 +1679,17 @@ document.addEventListener("DOMContentLoaded", function() {
   document.getElementById("exportData").addEventListener("click", exportData);
   document.getElementById("logoutBtn").addEventListener("click", doLogout);
 
-  if (AUTH_OK_INIT && SESSION_TOKEN) {
-    currentUser = INITIAL_USER || "";
-    currentToken = SESSION_TOKEN || "";
-    document.getElementById("activeUser").textContent = currentUser;
-    showDashboardScreen();
-    loadDataFromServer();
-  } else {
-    showLoginScreen();
-  }
+  // Check auth state
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      currentUser = user.email;
+      document.getElementById("activeUser").textContent = currentUser;
+      showDashboardScreen();
+      loadDataFromServer();
+    } else {
+      showLoginScreen();
+    }
+  });
 
   // Inicializar tooltips
   const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');

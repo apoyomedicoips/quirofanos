@@ -1,5 +1,7 @@
 // Parámetros de Google Sheets
 const SHEET_ID = "13mzYK7HsvwiKyMXDpZJ3d1fLRvkwPYbOKUeedYSUh68";
+
+
 const SHEET_NAME = "Registros";
 // CSV directo de la hoja "Registros
 

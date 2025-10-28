@@ -12,6 +12,14 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
+
+    <!-- DataTables -->
+    <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
     <style>
         :root {
@@ -354,6 +362,20 @@
                         <option value="__ALL__">Todas</option>
                     </select>
                 </div>
+                <div class="col-md-3">
+                    <label for="filtroNombre" class="form-label">Nombre Personal</label>
+                    <select class="form-select" id="filtroNombre">
+                        <option value="__ALL__">Todos</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="filtroUsuario" class="form-label">Usuario</label>
+                    <select class="form-select" id="filtroUsuario">
+                        <option value="__ALL__">Todos</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row mt-3">
                 <div class="col-md-3 d-flex align-items-end">
                     <button class="btn btn-secondary w-100" id="btnReset">
                         <i class="bi bi-arrow-clockwise"></i> Limpiar filtros
@@ -504,7 +526,7 @@
                             <div class="card-header">
                                 <div class="title-with-info">
                                     <h5>Descargas por día y farmacia</h5>
-                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Gráfico de líneas que muestra la evolución diaria del número de descargas de kits por farmacia/almacén. Permite identificar picos de actividad, tendencias temporales y diferencias entre ubicaciones, facilitando el análisis de demanda y posibles anomalías en el flujo operativo."></i>
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Gráfico de líneas que muestra la evolución diaria del número de descargas de kits por farmacia/almacén. Permite identificar picos de actividad, tendencias temporales y diferencias entre ubicaciones, facilitando el análisis de demanda y posibles anomalías en el flujo operativo. Usa zoom y pan para explorar detalles."></i>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -757,7 +779,7 @@
                                     <canvas id="previsionConsumoChart"></canvas>
                                 </div>
                                 <div class="chart-note">
-                                    Tendencia y proyección mensual usando suavizado exponencial. Línea punteada indica pronóstico.
+                                    Tendencia y proyección mensual usando suavizado exponencial. Línea punteada indica pronóstico. Usa zoom para detalles.
                                 </div>
                             </div>
                         </div>
@@ -791,7 +813,7 @@
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <div class="title-with-info">
                             <h5>Registros recientes, filtrados</h5>
-                            <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Tabla detallada con los 100 registros más recientes según filtros aplicados, ordenados por timestamp descendente. Incluye todas las variables clave para auditoría y análisis granular; soporta exportación a CSV para informes externos."></i>
+                            <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Tabla detallada con los 100 registros más recientes según filtros aplicados, ordenados por timestamp descendente. Incluye todas las variables clave para auditoría y análisis granular; soporta exportación a CSV para informes externos. La tabla es interactiva con búsqueda, ordenación y paginación."></i>
                         </div>
                         <button class="btn btn-sm btn-outline-light" id="exportData">
                             <i class="bi bi-download"></i> Exportar Datos
@@ -818,7 +840,7 @@
                             </table>
                         </div>
                         <div class="footnote">
-                            Muestra hasta 100 filas más recientes según filtros aplicados.
+                            Muestra hasta 100 filas más recientes según filtros aplicados. Usa la búsqueda y ordenación para explorar.
                         </div>
                     </div>
                 </div>
@@ -855,6 +877,23 @@
                             <div class="card-body">
                                 <div class="chart-container">
                                     <canvas id="segmentQuirofanoTipoChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="title-with-info">
+                                    <h5>Consumo por Farmacia y Especialidad</h5>
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Gráfico stacked de consumo de kits por farmacia y especialidad. Permite segmentar datos para análisis de distribución por ubicación y área médica. Usa zoom para detalles."></i>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="segmentFarmaciaEspecialidadChart"></canvas>
                                 </div>
                             </div>
                         </div>
@@ -1122,7 +1161,7 @@ function inferEspecialidad(kit) {
 function inferirEspecialidades(data) {
     const especialidades = {};
     data.forEach(r => {
-        const esp = r.Especialidad || inferEspecialidad(r.Nombre_kit);
+        const esp = inferEspecialidad(r.Nombre_kit);
         especialidades[esp] = (especialidades[esp] || 0) + (r.Cantidad_num || 0);
     });
     return especialidades;
@@ -1227,6 +1266,28 @@ function destroyCharts() {
   charts = {};
 }
 
+function getCommonOptions() {
+    return {
+        plugins: {
+            zoom: {
+                zoom: {
+                    wheel: {
+                        enabled: true,
+                    },
+                    pinch: {
+                        enabled: true
+                    },
+                    mode: 'xy',
+                },
+                pan: {
+                    enabled: true,
+                    mode: 'xy',
+                }
+            }
+        }
+    };
+}
+
 function createChartDiaFarmacia() {
   const ctx = document.getElementById("chartDiaFarmacia").getContext("2d");
   const M = {};
@@ -1258,7 +1319,7 @@ function createChartDiaFarmacia() {
     };
   });
 
-  charts.chartDiaFarmacia = new Chart(ctx, {
+  const options = {
     type: "line",
     data: { labels, datasets },
     options: {
@@ -1279,9 +1340,12 @@ function createChartDiaFarmacia() {
       scales: {
         x: { title: { display: true, text: "Fecha" } },
         y: { beginAtZero: true, title: { display: true, text: "Descargas" } }
-      }
+      },
+      ...getCommonOptions()
     }
-  });
+  };
+
+  charts.chartDiaFarmacia = new Chart(ctx, options);
 }
 
 function createTurnoChart() {
@@ -1321,7 +1385,8 @@ function createTurnoChart() {
             return percentage;
           }
         }
-      }
+      },
+      ...getCommonOptions()
     },
     plugins: [ChartDataLabels]
   });
@@ -1361,7 +1426,8 @@ function createTipoChart() {
             return percentage;
           }
         }
-      }
+      },
+      ...getCommonOptions()
     },
     plugins: [ChartDataLabels]
   });
@@ -1377,7 +1443,7 @@ function createTopAnestesiologosChart() {
       if (r.Nombre) {
         anestData[r.Nombre] = (anestData[r.Nombre] || 0) + 1;
       }
-  });
+    });
 
   const top = Object.entries(anestData)
     .sort(function(a,b){ return b[1] - a[1]; })
@@ -1409,7 +1475,8 @@ function createTopAnestesiologosChart() {
           color: var(--text-main),
           font: { weight: 'bold' }
         }
-      }
+      },
+      ...getCommonOptions()
     },
     plugins: [ChartDataLabels]
   });
@@ -1457,7 +1524,8 @@ function createTopCirculantesChart() {
           color: var(--text-main),
           font: { weight: 'bold' }
         }
-      }
+      },
+      ...getCommonOptions()
     },
     plugins: [ChartDataLabels]
   });
@@ -1513,7 +1581,8 @@ function createPersonalQuirfanoChart() {
         datalabels: {
           display: false
         }
-      }
+      },
+      ...getCommonOptions()
     }
   });
 }
@@ -1558,7 +1627,8 @@ function createTopKitsChart() {
           color: var(--text-main),
           font: { weight: 'bold' }
         }
-      }
+      },
+      ...getCommonOptions()
     },
     plugins: [ChartDataLabels]
   });
@@ -1597,7 +1667,8 @@ function createKitsCantidadChart() {
             return percentage;
           }
         }
-      }
+      },
+      ...getCommonOptions()
     },
     plugins: [ChartDataLabels]
   });
@@ -1637,7 +1708,8 @@ function createKitsQuirfanoChart() {
           color: var(--text-main),
           font: { weight: 'bold' }
         }
-      }
+      },
+      ...getCommonOptions()
     },
     plugins: [ChartDataLabels]
   });
@@ -1693,7 +1765,8 @@ function createRotacionQuirfanosChart() {
                     color: var(--text-main),
                     font: { weight: 'bold' }
                 }
-            }
+            },
+            ...getCommonOptions()
         },
         plugins: [ChartDataLabels]
     });
@@ -1754,7 +1827,8 @@ function createEficienciaPersonalChart() {
                     color: var(--text-main),
                     font: { weight: 'bold' }
                 }
-            }
+            },
+            ...getCommonOptions()
         },
         plugins: [ChartDataLabels]
     });
@@ -1796,7 +1870,8 @@ function createPatronesConsumoChart() {
                     color: var(--text-main),
                     font: { weight: 'bold' }
                 }
-            }
+            },
+            ...getCommonOptions()
         },
         plugins: [ChartDataLabels]
     });
@@ -1870,7 +1945,8 @@ function createCurvaABCChart() {
                     color: var(--text-main),
                     font: { weight: 'bold' }
                 }
-            }
+            },
+            ...getCommonOptions()
         },
         plugins: [ChartDataLabels]
     });
@@ -1963,7 +2039,8 @@ function createPrevisionConsumoChart() {
                 datalabels: {
                     display: false
                 }
-            }
+            },
+            ...getCommonOptions()
         }
     });
 }
@@ -2041,7 +2118,8 @@ function createEstacionalidadChart() {
                 datalabels: {
                     display: false
                 }
-            }
+            },
+            ...getCommonOptions()
         }
     });
 }
@@ -2083,7 +2161,8 @@ function createSegmentEspecialidadTurnoChart() {
             scales: {
                 y: { stacked: true, beginAtZero: true },
                 x: { stacked: true }
-            }
+            },
+            ...getCommonOptions()
         }
     });
 }
@@ -2122,7 +2201,58 @@ function createSegmentQuirofanoTipoChart() {
             scales: {
                 y: { stacked: true, beginAtZero: true },
                 x: { stacked: true }
-            }
+            },
+            ...getCommonOptions()
+        }
+    });
+}
+
+function createSegmentFarmaciaEspecialidadChart() {
+    const ctx = document.getElementById("segmentFarmaciaEspecialidadChart").getContext("2d");
+    const M = {};
+    filteredData.forEach(r => {
+        const farm = r.Farmacia || "Sin farmacia";
+        const esp = inferEspecialidad(r.Nombre_kit);
+        if (!M[farm]) M[farm] = {};
+        M[farm][esp] = (M[farm][esp] || 0) + (r.Cantidad_num || 0);
+    });
+
+    const farms = Object.keys(M).sort();
+    const esps = [...new Set(farms.flatMap(f => Object.keys(M[f])))].sort();
+
+    const colors = [
+        "rgba(255, 99, 132, 0.7)",
+        "rgba(54, 162, 235, 0.7)",
+        "rgba(255, 206, 86, 0.7)",
+        "rgba(75, 192, 192, 0.7)",
+        "rgba(153, 102, 255, 0.7)",
+        "rgba(255, 159, 64, 0.7)",
+        "rgba(201, 203, 207, 0.7)"
+    ];
+
+    const datasets = esps.map((e, idx) => {
+        return {
+            label: e,
+            data: farms.map(f => M[f][e] || 0),
+            backgroundColor: colors[idx % colors.length],
+            stack: 'stack'
+        };
+    });
+
+    charts.segmentFarmaciaEspecialidadChart = new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: farms,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { stacked: true, beginAtZero: true, title: { display: true, text: "Unidades consumidas" } },
+                x: { stacked: true, title: { display: true, text: "Farmacia" } }
+            },
+            ...getCommonOptions()
         }
     });
 }
@@ -2164,6 +2294,28 @@ function updateDataTable() {
     });
     tb.appendChild(tr);
   });
+
+  if ($.fn.DataTable.isDataTable('#dataTable')) {
+    $('#dataTable').DataTable().destroy();
+  }
+  $('#dataTable').DataTable({
+    paging: true,
+    searching: true,
+    ordering: true,
+    info: true,
+    lengthChange: false,
+    pageLength: 10,
+    language: {
+      search: "Buscar:",
+      paginate: {
+        first: "Primero",
+        last: "Último",
+        next: "Siguiente",
+        previous: "Anterior"
+      },
+      info: "Mostrando _START_ a _END_ de _TOTAL_ entradas"
+    }
+  });
 }
 
 // ======================================================================
@@ -2176,6 +2328,8 @@ function populateFilters() {
   populateSelect("filtroTipo", r => r.Tipo);
   populateSelect("filtroQuirofano", r => r.Quirofano);
   populateSelect("filtroKit", r => r.Nombre_kit);
+  populateSelect("filtroNombre", r => r.Nombre);
+  populateSelect("filtroUsuario", r => r.Usuario);
 
   // Para especialidad
   const selEsp = document.getElementById("filtroEspecialidad");
@@ -2214,6 +2368,8 @@ function applyFilters() {
   const fq = document.getElementById("filtroQuirofano").value || "__ALL__";
   const fk = document.getElementById("filtroKit").value || "__ALL__";
   const fe = document.getElementById("filtroEspecialidad").value || "__ALL__";
+  const fn = document.getElementById("filtroNombre").value || "__ALL__";
+  const fu = document.getElementById("filtroUsuario").value || "__ALL__";
 
   filteredData = originalData.filter(function(r){
     if (ff !== "__ALL__" && r.Farmacia !== ff) return false;
@@ -2222,6 +2378,8 @@ function applyFilters() {
     if (fq !== "__ALL__" && r.Quirofano !== fq) return false;
     if (fk !== "__ALL__" && r.Nombre_kit !== fk) return false;
     if (fe !== "__ALL__" && inferEspecialidad(r.Nombre_kit) !== fe) return false;
+    if (fn !== "__ALL__" && r.Nombre !== fn) return false;
+    if (fu !== "__ALL__" && r.Usuario !== fu) return false;
     if (fd && r.Fecha_iso && r.Fecha_iso < fd) return false;
     if (fh && r.Fecha_iso && r.Fecha_iso > fh) return false;
     return true;
@@ -2239,6 +2397,8 @@ function resetFilters() {
   document.getElementById("filtroQuirofano").value = "__ALL__";
   document.getElementById("filtroKit").value = "__ALL__";
   document.getElementById("filtroEspecialidad").value = "__ALL__";
+  document.getElementById("filtroNombre").value = "__ALL__";
+  document.getElementById("filtroUsuario").value = "__ALL__";
 
   filteredData = originalData.slice();
   refreshDashboard();
@@ -2461,6 +2621,7 @@ function refreshDashboard() {
   createEstacionalidadChart();
   createSegmentEspecialidadTurnoChart();
   createSegmentQuirofanoTipoChart();
+  createSegmentFarmaciaEspecialidadChart();
 
   updateDataTable();
 
@@ -2489,6 +2650,8 @@ document.addEventListener("DOMContentLoaded", function(){
   document.getElementById("filtroQuirofano").addEventListener("change", applyFilters);
   document.getElementById("filtroKit").addEventListener("change", applyFilters);
   document.getElementById("filtroEspecialidad").addEventListener("change", applyFilters);
+  document.getElementById("filtroNombre").addEventListener("change", applyFilters);
+  document.getElementById("filtroUsuario").addEventListener("change", applyFilters);
   document.getElementById("btnReset").addEventListener("click", resetFilters);
   document.getElementById("exportData").addEventListener("click", exportData);
   document.getElementById("logoutBtn").addEventListener("click", doLogout);

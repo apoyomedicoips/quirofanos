@@ -243,11 +243,11 @@
         <form id="loginForm">
             <div class="mb-3">
                 <label for="usuario" class="form-label">Usuario</label>
-                <input type="text" class="form-control" id="usuario" required>
+                <input type="text" class="form-control" id="usuario" required autocomplete="username">
             </div>
             <div class="mb-3">
                 <label for="codigo" class="form-label">Código de acceso</label>
-                <input type="password" class="form-control" id="codigo" required>
+                <input type="password" class="form-control" id="codigo" required autocomplete="current-password">
             </div>
             <button type="submit" class="btn btn-primary w-100">
                 Acceder
@@ -710,20 +710,21 @@
 
 <script>
 // ======================================================================
-// Variables inyectadas desde Code.gs
+// CONFIGURACIÓN DEL FRONTEND ESTÁTICO
 // ======================================================================
-const AUTH_OK_INIT   = <?= authOk ? "true" : "false" ?>;
-const SESSION_TOKEN  = "<?= sessionToken ?>";
-const INITIAL_USER   = "<?= usuario ?>";
 
-// ======================================================================
-// Estado global en el cliente
-// ======================================================================
+// URL del Web App de Google Apps Script desplegado con doPost/doGet
+// Debe terminar en /exec
+const BACKEND_URL = "https://script.googleusercontent.com/macros/echo/XXXXXXXXXXXX/exec"; // <-- reemplazar por tu URL real
+
+// Estado de sesión en el cliente
+let currentUser = null;
+let currentToken = null;
+
+// Datos
 let originalData = [];
 let filteredData = [];
 let charts = {};
-let currentUser = null;
-let currentToken = null;
 
 // ======================================================================
 // Utilidades de datos
@@ -731,13 +732,11 @@ let currentToken = null;
 
 function toISO(dateStr) {
   if (!dateStr) return null;
-  // formato dd/mm/yyyy
   const m = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   if (m) {
     const dd = m[1], mm = m[2], yyyy = m[3];
     return `${yyyy}-${mm}-${dd}`;
   }
-  // fallback genérico
   const dObj = new Date(dateStr);
   if (!isNaN(dObj.getTime())) {
     const dd2 = String(dObj.getDate()).padStart(2,"0");
@@ -791,7 +790,6 @@ function showDashboardScreen() {
   document.getElementById("loginScreen").style.display = "none";
   document.getElementById("dashboardScreen").style.display = "block";
 }
-
 function showLoginError(msg) {
   const e = document.getElementById("loginError");
   e.textContent = msg;
@@ -799,7 +797,7 @@ function showLoginError(msg) {
 }
 
 // ======================================================================
-// KPIs y cálculos estadísticos
+// KPIs y métricas
 // ======================================================================
 
 function calcKPIs(data) {
@@ -807,71 +805,12 @@ function calcKPIs(data) {
   const unidades = data.reduce((acc, r) => acc + (r.Cantidad_num || 0), 0);
   const farmSet = new Set(data.map(r => r.Farmacia));
   const nFarm   = farmSet.size;
-
-  const diasSet = new Set(
-    data.map(r => r.Fecha_iso).filter(d => !!d)
-  );
+  const diasSet = new Set(data.map(r => r.Fecha_iso).filter(d => !!d));
   const nDias   = diasSet.size || 1;
   const prom    = total / nDias;
-
   return { total, unidades, nFarm, prom };
 }
 
-function calcKPIsEspecializados(data) {
-    const total = data.length;
-    const unidades = data.reduce((acc, r) => acc + (r.Cantidad_num || 0), 0);
-    const farmSet = new Set(data.map(r => r.Farmacia));
-    const nFarm = farmSet.size;
-    
-    const diasSet = new Set(data.map(r => r.Fecha_iso).filter(d => !!d));
-    const nDias = diasSet.size || 1;
-    const prom = total / nDias;
-    
-    // Análisis de turnos
-    const turnoCount = {};
-    data.forEach(r => {
-        if (r.Turno) {
-            turnoCount[r.Turno] = (turnoCount[r.Turno] || 0) + 1;
-        }
-    });
-    const turnoMasActivo = Object.keys(turnoCount).length > 0 ? 
-        Object.keys(turnoCount).reduce((a, b) => 
-            turnoCount[a] > turnoCount[b] ? a : b) : "-";
-    
-    // Detección de suspensiones
-    const suspensiones = data.filter(r => 
-        r.Observaciones && r.Observaciones.toLowerCase().includes("suspend")
-    ).length;
-    const tasaSuspension = total > 0 ? (suspensiones / total * 100).toFixed(1) : 0;
-    
-    // Eficiencia (kits por procedimiento)
-    const kitsPorProc = total > 0 ? (unidades / total).toFixed(1) : 0;
-    
-    // Detección de especialidad principal
-    const especialidades = inferirEspecialidades(data);
-    const especialidadPrincipal = Object.keys(especialidades).length > 0 ? 
-        Object.keys(especialidades).reduce((a, b) => 
-            especialidades[a] > especialidades[b] ? a : b) : "-";
-    
-    // Eficiencia quirófano (procedimientos por quirófano por día)
-    const quirfanos = [...new Set(data.map(r => r.Quirofano).filter(q => q))];
-    const eficiencia = quirfanos.length > 0 ? 
-        (total / (quirfanos.length * nDias)).toFixed(1) : 0;
-
-    return { 
-        total, 
-        unidades, 
-        nFarm, 
-        prom, 
-        turnoMasActivo, 
-        tasaSuspension,
-        kitsPorProc,
-        especialidadPrincipal,
-        eficiencia
-    };
-}
-
-// Función para inferir especialidades médicas desde los nombres de kits
 function inferirEspecialidades(data) {
     const mapeoEspecialidades = {
         'OFTALMOLOGIA': 'Oftalmología',
@@ -884,27 +823,63 @@ function inferirEspecialidades(data) {
         'BLOQUE': 'Bloques Quirúrgicos',
         'MALETÍN': 'Equipos Móviles'
     };
-    
     const especialidades = {};
-    
     data.forEach(r => {
         if (r.Nombre_kit) {
             const kit = r.Nombre_kit.toUpperCase();
             let especialidadDetectada = 'Otra';
-            
             for (const [key, value] of Object.entries(mapeoEspecialidades)) {
                 if (kit.includes(key)) {
                     especialidadDetectada = value;
                     break;
                 }
             }
-            
-            especialidades[especialidadDetectada] = 
+            especialidades[especialidadDetectada] =
                 (especialidades[especialidadDetectada] || 0) + (r.Cantidad_num || 0);
         }
     });
-    
     return especialidades;
+}
+
+function calcKPIsEspecializados(data) {
+    const total = data.length;
+    const unidades = data.reduce((acc, r) => acc + (r.Cantidad_num || 0), 0);
+    const farmSet = new Set(data.map(r => r.Farmacia));
+    const nFarm = farmSet.size;
+    const diasSet = new Set(data.map(r => r.Fecha_iso).filter(d => !!d));
+    const nDias = diasSet.size || 1;
+    const turnoCount = {};
+    data.forEach(r => {
+        if (r.Turno) {
+            turnoCount[r.Turno] = (turnoCount[r.Turno] || 0) + 1;
+        }
+    });
+    const turnoMasActivo = Object.keys(turnoCount).length > 0 ?
+        Object.keys(turnoCount).reduce((a,b)=> turnoCount[a]>turnoCount[b]?a:b) : "-";
+
+    const suspensiones = data.filter(r =>
+        r.Observaciones && r.Observaciones.toLowerCase().includes("suspend")
+    ).length;
+    const tasaSuspension = total > 0 ? (suspensiones / total * 100).toFixed(1) : 0;
+    const kitsPorProc = total > 0 ? (unidades / total).toFixed(1) : 0;
+    const especialidades = inferirEspecialidades(data);
+    const especialidadPrincipal = Object.keys(especialidades).length > 0 ?
+        Object.keys(especialidades).reduce((a,b)=> especialidades[a]>especialidades[b]?a:b) : "-";
+    const quirfanos = [...new Set(data.map(r => r.Quirofano).filter(q => q))];
+    const eficiencia = quirfanos.length > 0 ?
+        (total / (quirfanos.length * (diasSet.size || 1))).toFixed(1) : 0;
+
+    return {
+        total,
+        unidades,
+        nFarm,
+        prom: total / (diasSet.size || 1),
+        turnoMasActivo,
+        tasaSuspension,
+        kitsPorProc,
+        especialidadPrincipal,
+        eficiencia
+    };
 }
 
 function renderKPIs(k) {
@@ -921,8 +896,7 @@ function renderKPIsEspecializados(k) {
     document.getElementById("kpiTurnoActivo").textContent = k.turnoMasActivo;
     document.getElementById("kpiSuspension").textContent = k.tasaSuspension + "%";
     document.getElementById("kpiEspecialidad").textContent = k.especialidadPrincipal;
-    
-    // Colorear KPIs según umbrales
+
     const eficienciaElem = document.getElementById("kpiEficiencia");
     if (parseFloat(k.eficiencia) > 80) {
         eficienciaElem.classList.add("kpi-success");
@@ -933,7 +907,7 @@ function renderKPIsEspecializados(k) {
     } else {
         eficienciaElem.classList.remove("kpi-success", "kpi-warning");
     }
-    
+
     const suspensionElem = document.getElementById("kpiSuspension");
     if (parseFloat(k.tasaSuspension) > 10) {
         suspensionElem.classList.add("kpi-warning");
@@ -943,7 +917,7 @@ function renderKPIsEspecializados(k) {
 }
 
 // ======================================================================
-// Gráficos
+// Gráficos (igual que tu versión actual)
 // ======================================================================
 
 function destroyCharts() {
@@ -960,28 +934,16 @@ function createChartDiaFarmacia() {
     if (!M[r.Fecha_iso][r.Farmacia]) M[r.Fecha_iso][r.Farmacia] = 0;
     M[r.Fecha_iso][r.Farmacia] += 1;
   });
-
   const fechas = Object.keys(M).sort();
-  const farmCodes = [...new Set(
-    fechas.flatMap(F => Object.keys(M[F]))
-  )].sort();
-
+  const farmCodes = [...new Set(fechas.flatMap(F => Object.keys(M[F])) )].sort();
   const labels = fechas.map(F => {
     const [y,m,d] = F.split("-");
     return d + "/" + m + "/" + y;
   });
-
   const datasets = farmCodes.map(code => {
     const serie = fechas.map(F => M[F][code] || 0);
-    return {
-      label: code,
-      data: serie,
-      borderWidth: 2,
-      tension: 0.2,
-      fill: false
-    };
+    return { label: code, data: serie, borderWidth: 2, tension: 0.2, fill: false };
   });
-
   charts.chartDiaFarmacia = new Chart(ctx, {
     type: "line",
     data: { labels, datasets },
@@ -1009,11 +971,8 @@ function createTurnoChart() {
   const ctx = document.getElementById("turnoChart").getContext("2d");
   const turnoData = {};
   filteredData.forEach(r => {
-    if (r.Turno) {
-      turnoData[r.Turno] = (turnoData[r.Turno] || 0) + 1;
-    }
+    if (r.Turno) turnoData[r.Turno] = (turnoData[r.Turno] || 0) + 1;
   });
-
   charts.turnoChart = new Chart(ctx, {
     type: "doughnut",
     data: {
@@ -1029,10 +988,7 @@ function createTurnoChart() {
         ]
       }]
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false
-    }
+    options: { responsive: true, maintainAspectRatio: false }
   });
 }
 
@@ -1040,11 +996,8 @@ function createTipoChart() {
   const ctx = document.getElementById("tipoChart").getContext("2d");
   const tipoData = {};
   filteredData.forEach(r => {
-    if (r.Tipo) {
-      tipoData[r.Tipo] = (tipoData[r.Tipo] || 0) + 1;
-    }
+    if (r.Tipo) tipoData[r.Tipo] = (tipoData[r.Tipo] || 0) + 1;
   });
-
   charts.tipoChart = new Chart(ctx, {
     type: "pie",
     data: {
@@ -1057,29 +1010,17 @@ function createTipoChart() {
         ]
       }]
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false
-    }
+    options: { responsive: true, maintainAspectRatio: false }
   });
 }
 
 function createTopAnestesiologosChart() {
   const ctx = document.getElementById("topAnestesiologosChart").getContext("2d");
-
   const anestData = {};
-  filteredData
-    .filter(r => r.Tipo === "Anestesiólogo")
-    .forEach(r => {
-      if (r.Nombre) {
-        anestData[r.Nombre] = (anestData[r.Nombre] || 0) + 1;
-      }
-    });
-
-  const top = Object.entries(anestData)
-    .sort((a,b) => b[1] - a[1])
-    .slice(0,10);
-
+  filteredData.filter(r => r.Tipo === "Anestesiólogo").forEach(r => {
+    if (r.Nombre) anestData[r.Nombre] = (anestData[r.Nombre] || 0) + 1;
+  });
+  const top = Object.entries(anestData).sort((a,b)=>b[1]-a[1]).slice(0,10);
   charts.topAnestesiologosChart = new Chart(ctx, {
     type: "bar",
     data: {
@@ -1096,29 +1037,18 @@ function createTopAnestesiologosChart() {
       indexAxis: "y",
       responsive: true,
       maintainAspectRatio: false,
-      scales: {
-        x: { beginAtZero: true }
-      }
+      scales: { x: { beginAtZero: true } }
     }
   });
 }
 
 function createTopCirculantesChart() {
   const ctx = document.getElementById("topCirculantesChart").getContext("2d");
-
   const circData = {};
-  filteredData
-    .filter(r => r.Tipo === "Circulante")
-    .forEach(r => {
-      if (r.Nombre) {
-        circData[r.Nombre] = (circData[r.Nombre] || 0) + 1;
-      }
-    });
-
-  const top = Object.entries(circData)
-    .sort((a,b) => b[1] - a[1])
-    .slice(0,10);
-
+  filteredData.filter(r => r.Tipo === "Circulante").forEach(r => {
+    if (r.Nombre) circData[r.Nombre] = (circData[r.Nombre] || 0) + 1;
+  });
+  const top = Object.entries(circData).sort((a,b)=>b[1]-a[1]).slice(0,10);
   charts.topCirculantesChart = new Chart(ctx, {
     type: "bar",
     data: {
@@ -1135,9 +1065,7 @@ function createTopCirculantesChart() {
       indexAxis: "y",
       responsive: true,
       maintainAspectRatio: false,
-      scales: {
-        x: { beginAtZero: true }
-      }
+      scales: { x: { beginAtZero: true } }
     }
   });
 }
@@ -1148,18 +1076,12 @@ function createPersonalQuirfanoChart() {
   filteredData.forEach(r => {
     const q  = r.Quirofano || "Sin asignar";
     const tp = r.Tipo || "Sin tipo";
-    if (!M[q]) {
-      M[q] = { "Anestesiólogo":0, "Circulante":0 };
-    }
-    if (tp in M[q]) {
-      M[q][tp] += 1;
-    }
+    if (!M[q]) M[q] = { "Anestesiólogo":0, "Circulante":0 };
+    if (tp in M[q]) M[q][tp] += 1;
   });
-
   const quirfanos = Object.keys(M);
   const anestArr  = quirfanos.map(q => M[q]["Anestesiólogo"]);
   const circArr   = quirfanos.map(q => M[q]["Circulante"]);
-
   charts.personalQuirfanoChart = new Chart(ctx, {
     type: "bar",
     data: {
@@ -1169,14 +1091,14 @@ function createPersonalQuirfanoChart() {
           label: "Anestesiólogos",
           data: anestArr,
           backgroundColor: "rgba(153, 102, 255, 0.7)",
-          borderColor:     "rgba(153, 102, 255, 1)",
+          borderColor: "rgba(153, 102, 255, 1)",
           borderWidth: 1
         },
         {
           label: "Circulantes",
           data: circArr,
           backgroundColor: "rgba(255, 159, 64, 0.7)",
-          borderColor:     "rgba(255, 159, 64, 1)",
+          borderColor: "rgba(255, 159, 64, 1)",
           borderWidth: 1
         }
       ]
@@ -1184,9 +1106,7 @@ function createPersonalQuirfanoChart() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      scales: {
-        y: { beginAtZero: true }
-      }
+      scales: { y: { beginAtZero: true } }
     }
   });
 }
@@ -1200,11 +1120,7 @@ function createTopKitsChart() {
       kitsData[kit] = (kitsData[kit] || 0) + (r.Cantidad_num || 0);
     }
   });
-
-  const top = Object.entries(kitsData)
-    .sort((a,b)=> b[1]-a[1])
-    .slice(0,10);
-
+  const top = Object.entries(kitsData).sort((a,b)=>b[1]-a[1]).slice(0,10);
   charts.topKitsChart = new Chart(ctx, {
     type: "bar",
     data: {
@@ -1221,9 +1137,7 @@ function createTopKitsChart() {
       indexAxis:"y",
       responsive:true,
       maintainAspectRatio:false,
-      scales: {
-        x: { beginAtZero:true }
-      }
+      scales: { x: { beginAtZero:true } }
     }
   });
 }
@@ -1235,7 +1149,6 @@ function createKitsCantidadChart() {
     const tp = r.Tipo || "Sin tipo";
     sumTipo[tp] = (sumTipo[tp] || 0) + (r.Cantidad_num || 0);
   });
-
   charts.kitsCantidadChart = new Chart(ctx, {
     type:"doughnut",
     data:{
@@ -1248,10 +1161,7 @@ function createKitsCantidadChart() {
         ]
       }]
     },
-    options:{
-      responsive:true,
-      maintainAspectRatio:false
-    }
+    options:{ responsive:true, maintainAspectRatio:false }
   });
 }
 
@@ -1262,7 +1172,6 @@ function createKitsQuirfanoChart() {
     const q = r.Quirofano || "Sin asignar";
     sumQ[q] = (sumQ[q] || 0) + (r.Cantidad_num || 0);
   });
-
   const sortedQ = Object.entries(sumQ).sort((a,b)=>b[1]-a[1]);
   charts.kitsQuirfanoChart = new Chart(ctx, {
     type:"bar",
@@ -1279,21 +1188,13 @@ function createKitsQuirfanoChart() {
     options:{
       responsive:true,
       maintainAspectRatio:false,
-      scales:{
-        y:{ beginAtZero:true }
-      }
+      scales:{ y:{ beginAtZero:true } }
     }
   });
 }
 
-// ======================================================================
-// Nuevas gráficas para las pestañas de Eficiencia y Stock
-// ======================================================================
-
 function createRotacionQuirfanosChart() {
     const ctx = document.getElementById('rotacionQuirfanosChart').getContext('2d');
-    
-    // Calcular procedimientos por quirófano por día
     const rotacion = {};
     filteredData.forEach(r => {
         if (r.Quirofano && r.Fecha_iso) {
@@ -1303,13 +1204,11 @@ function createRotacionQuirfanosChart() {
             rotacion[key].dias.add(r.Fecha_iso);
         }
     });
-    
     const labels = Object.keys(rotacion).sort();
     const data = labels.map(q => {
         const dias = rotacion[q].dias.size;
         return dias > 0 ? (rotacion[q].total / dias).toFixed(1) : 0;
     });
-    
     charts.rotacionQuirfanosChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -1326,19 +1225,8 @@ function createRotacionQuirfanosChart() {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Procedimientos por día'
-                    }
-                },
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Quirófano'
-                    }
-                }
+                y: { beginAtZero: true, title: { display: true, text: 'Procedimientos por día' } },
+                x: { title: { display: true, text: 'Quirófano' } }
             }
         }
     });
@@ -1346,8 +1234,6 @@ function createRotacionQuirfanosChart() {
 
 function createEficienciaPersonalChart() {
     const ctx = document.getElementById('eficienciaPersonalChart').getContext('2d');
-    
-    // Calcular eficiencia por profesional (procedimientos por día trabajado)
     const eficiencia = {};
     filteredData.forEach(r => {
         if (r.Nombre && r.Fecha_iso) {
@@ -1356,22 +1242,11 @@ function createEficienciaPersonalChart() {
             eficiencia[r.Nombre].dias.add(r.Fecha_iso);
         }
     });
-    
-    // Convertir a array y calcular eficiencia
     const eficienciaArray = Object.entries(eficiencia).map(([nombre, datos]) => {
         const dias = datos.dias.size;
-        return {
-            nombre: nombre,
-            eficiencia: dias > 0 ? (datos.total / dias).toFixed(1) : 0,
-            total: datos.total
-        };
+        return { nombre: nombre, eficiencia: dias > 0 ? (datos.total / dias).toFixed(1) : 0 };
     });
-    
-    // Ordenar por eficiencia y tomar top 15
-    const topEficiencia = eficienciaArray
-        .sort((a, b) => b.eficiencia - a.eficiencia)
-        .slice(0, 15);
-    
+    const topEficiencia = eficienciaArray.sort((a,b)=>b.eficiencia-a.eficiencia).slice(0,15);
     charts.eficienciaPersonalChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -1389,13 +1264,7 @@ function createEficienciaPersonalChart() {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                x: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Procedimientos por día trabajado'
-                    }
-                }
+                x: { beginAtZero: true, title: { display: true, text: 'Procedimientos por día trabajado' } }
             }
         }
     });
@@ -1403,13 +1272,9 @@ function createEficienciaPersonalChart() {
 
 function createPatronesConsumoChart() {
     const ctx = document.getElementById('patronesConsumoChart').getContext('2d');
-    
     const especialidades = inferirEspecialidades(filteredData);
-    
-    // Preparar datos para gráfico de barras
     const labels = Object.keys(especialidades);
     const data = Object.values(especialidades);
-    
     charts.patronesConsumoChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -1426,13 +1291,7 @@ function createPatronesConsumoChart() {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Unidades consumidas'
-                    }
-                }
+                y: { beginAtZero: true, title: { display: true, text: 'Unidades consumidas' } }
             }
         }
     });
@@ -1440,8 +1299,6 @@ function createPatronesConsumoChart() {
 
 function createCurvaABCChart() {
     const ctx = document.getElementById('curvaABCChart').getContext('2d');
-    
-    // Agrupar consumo por kit
     const consumoKits = {};
     filteredData.forEach(r => {
         if (r.Nombre_kit && r.Nombre_kit !== "") {
@@ -1449,34 +1306,25 @@ function createCurvaABCChart() {
             consumoKits[kit] = (consumoKits[kit] || 0) + (r.Cantidad_num || 0);
         }
     });
-    
-    // Ordenar por consumo descendente
-    const sorted = Object.entries(consumoKits)
-        .sort((a, b) => b[1] - a[1]);
-    
-    // Calcular porcentajes acumulados
+    const sorted = Object.entries(consumoKits).sort((a,b)=>b[1]-a[1]);
     const total = sorted.reduce((sum, item) => sum + item[1], 0);
     let acumulado = 0;
-    const dataABC = sorted.map((item, index) => {
+    const dataABC = sorted.map(item => {
         acumulado += item[1];
         return {
             kit: item[0],
             consumo: item[1],
-            porcentaje: (item[1] / total * 100),
-            acumulado: (acumulado / total * 100),
-            categoria: acumulado / total <= 0.8 ? 'A' : 
-                      acumulado / total <= 0.95 ? 'B' : 'C'
+            categoria: (acumulado/total <= 0.8) ? 'A' :
+                       (acumulado/total <= 0.95) ? 'B' : 'C'
         };
     });
-    
-    const labels = dataABC.map(d => d.kit.substring(0, 20) + (d.kit.length > 20 ? '...' : ''));
+    const labels = dataABC.map(d => d.kit.length>20 ? d.kit.substring(0,20)+'...' : d.kit);
     const data = dataABC.map(d => d.consumo);
-    const backgroundColors = dataABC.map(d => 
+    const backgroundColors = dataABC.map(d =>
         d.categoria === 'A' ? 'rgba(255, 99, 132, 0.7)' :
         d.categoria === 'B' ? 'rgba(255, 159, 64, 0.7)' :
-        'rgba(75, 192, 192, 0.7)'
+                              'rgba(75, 192, 192, 0.7)'
     );
-    
     charts.curvaABCChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -1493,13 +1341,7 @@ function createCurvaABCChart() {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Unidades consumidas'
-                    }
-                }
+                y: { beginAtZero: true, title: { display: true, text: 'Unidades consumidas' } }
             }
         }
     });
@@ -1507,49 +1349,40 @@ function createCurvaABCChart() {
 
 function createPrevisionConsumoChart() {
     const ctx = document.getElementById('previsionConsumoChart').getContext('2d');
-    
-    // Agrupar por mes
     const consumoMensual = {};
     filteredData.forEach(r => {
         if (r.Fecha_iso) {
-            const mes = r.Fecha_iso.substring(0, 7); // Formato YYYY-MM
+            const mes = r.Fecha_iso.substring(0, 7);
             consumoMensual[mes] = (consumoMensual[mes] || 0) + (r.Cantidad_num || 0);
         }
     });
-    
-    // Ordenar por mes
     const meses = Object.keys(consumoMensual).sort();
     const consumos = meses.map(mes => consumoMensual[mes]);
-    
-    // Simular proyección (en un caso real, usaríamos un modelo predictivo)
-    const ultimosMeses = meses.slice(-6); // Últimos 6 meses para proyección
+
+    const ultimosMeses = meses.slice(-6);
     const ultimosConsumos = consumos.slice(-6);
-    
-    // Calcular tendencia simple
+
     const n = ultimosConsumos.length;
     let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
     ultimosConsumos.forEach((y, i) => {
-        const x = i;
-        sumX += x;
+        sumX += i;
         sumY += y;
-        sumXY += x * y;
-        sumX2 += x * x;
+        sumXY += i * y;
+        sumX2 += i * i;
     });
-    
+
     const pendiente = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
     const intercepto = (sumY - pendiente * sumX) / n;
-    
-    // Proyectar 3 meses
+
     const mesesProyeccion = [];
     const consumosProyeccion = [];
-    
     for (let i = 0; i < 3; i++) {
-        const nextIndex = n + i;
-        const proyeccion = intercepto + pendiente * nextIndex;
+        const xFuture = n + i;
+        const proy = intercepto + pendiente * xFuture;
         mesesProyeccion.push(`Proy ${i+1}`);
-        consumosProyeccion.push(Math.max(0, Math.round(proyeccion)));
+        consumosProyeccion.push(Math.max(0, Math.round(proy)));
     }
-    
+
     charts.previsionConsumoChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -1580,13 +1413,7 @@ function createPrevisionConsumoChart() {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Unidades consumidas'
-                    }
-                }
+                y: { beginAtZero: true, title: { display: true, text: 'Unidades consumidas' } }
             }
         }
     });
@@ -1594,68 +1421,39 @@ function createPrevisionConsumoChart() {
 
 function createEstacionalidadChart() {
     const ctx = document.getElementById('estacionalidadChart').getContext('2d');
-    
-    // Mapeo de días de la semana
-    const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-    
-    // Agrupar por día de la semana y turno
+    const diasSemana = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
     const estacionalidad = {};
-    
     filteredData.forEach(r => {
         if (r.Fecha_iso && r.Turno) {
             const fecha = new Date(r.Fecha_iso);
             const diaSemana = diasSemana[fecha.getDay()];
-            const turno = r.Turno;
-            
-            const key = `${diaSemana} - ${turno}`;
+            const key = diaSemana + " - " + r.Turno;
             estacionalidad[key] = (estacionalidad[key] || 0) + (r.Cantidad_num || 0);
         }
     });
-    
-    // Ordenar por día de la semana
-    const diasOrdenados = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    const diasOrdenados = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
     const turnos = [...new Set(Object.keys(estacionalidad).map(k => k.split(' - ')[1]))];
-    
-    // Preparar datos para gráfico de barras agrupadas
     const datasets = turnos.map(turno => {
         const data = diasOrdenados.map(dia => {
-            const key = `${dia} - ${turno}`;
+            const key = dia + " - " + turno;
             return estacionalidad[key] || 0;
         });
-        
-        return {
-            label: turno,
-            data: data,
-            backgroundColor: turno.includes('Mañana') ? 'rgba(255, 206, 86, 0.7)' :
-                           turno.includes('Tarde') ? 'rgba(54, 162, 235, 0.7)' :
-                           turno.includes('Noche') ? 'rgba(153, 102, 255, 0.7)' :
-                           'rgba(201, 203, 207, 0.7)'
-        };
+        const bg = turno.includes('Mañana') ? 'rgba(255, 206, 86, 0.7)' :
+                   turno.includes('Tarde')  ? 'rgba(54, 162, 235, 0.7)' :
+                   turno.includes('Noche')  ? 'rgba(153, 102, 255, 0.7)' :
+                                               'rgba(201, 203, 207, 0.7)';
+        const bd = bg.replace('0.7','1');
+        return { label: turno, data: data, backgroundColor: bg, borderColor: bd, borderWidth: 1 };
     });
-    
     charts.estacionalidadChart = new Chart(ctx, {
         type: 'bar',
-        data: {
-            labels: diasOrdenados,
-            datasets: datasets
-        },
+        data: { labels: diasOrdenados, datasets: datasets },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Unidades consumidas'
-                    }
-                },
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Día de la semana'
-                    }
-                }
+                y: { beginAtZero: true, title: { display: true, text: 'Unidades consumidas' } },
+                x: { title: { display: true, text: 'Día de la semana' } }
             }
         }
     });
@@ -1668,12 +1466,9 @@ function createEstacionalidadChart() {
 function updateDataTable() {
   const tb = document.getElementById("dataTableBody");
   tb.innerHTML = "";
-
-  // ordenar por timestamp desc
   const sorted = [...filteredData].sort((a,b)=>{
     return (b.Timestamp_obj||0) - (a.Timestamp_obj||0);
   });
-
   const top100 = sorted.slice(0,100);
   top100.forEach(r => {
     const tr = document.createElement("tr");
@@ -1692,7 +1487,7 @@ function updateDataTable() {
     cols.forEach((val, idx)=>{
       const td = document.createElement("td");
       td.textContent = val || "";
-      if (idx === 7) { td.style.textAlign = "right"; } // Cantidad
+      if (idx === 7) { td.style.textAlign = "right"; }
       tr.appendChild(td);
     });
     tb.appendChild(tr);
@@ -1705,7 +1500,6 @@ function updateDataTable() {
 
 function populateFilters() {
   const sel = document.getElementById("filtroFarmacia");
-  // limpiar excepto "Todas"
   while (sel.options.length > 1) {
     sel.remove(1);
   }
@@ -1743,7 +1537,7 @@ function resetFilters() {
 }
 
 // ======================================================================
-// Exportar datos filtrados
+// Exportar
 // ======================================================================
 
 function exportData() {
@@ -1779,31 +1573,23 @@ function exportData() {
 function checkDataQuality(data) {
     const total = data.length;
     if (total === 0) return null;
-    
     const issues = [];
-    
-    // Verificar registros sin quirófano
     const sinQuirofano = data.filter(r => !r.Quirofano || r.Quirofano === "").length;
     if (sinQuirofano > 0) {
         issues.push(`${sinQuirofano} registros sin quirófano asignado (${(sinQuirofano/total*100).toFixed(1)}%)`);
     }
-    
-    // Verificar registros sin kit
     const sinKit = data.filter(r => !r.Nombre_kit || r.Nombre_kit === "").length;
     if (sinKit > 0) {
         issues.push(`${sinKit} registros sin kit asignado (${(sinKit/total*100).toFixed(1)}%)`);
     }
-    
     return issues.length > 0 ? issues : null;
 }
 
 function mostrarAlertasCalidad(issues) {
     const alertDiv = document.getElementById("dataQualityAlert");
     const messageDiv = document.getElementById("dataQualityMessage");
-    
     if (issues && issues.length > 0) {
-        messageDiv.innerHTML = "<strong>Se detectaron las siguientes situaciones:</strong><br>" + 
-            issues.join("<br>");
+        messageDiv.innerHTML = "<strong>Se detectaron las siguientes situaciones:</strong><br>" + issues.join("<br>");
         alertDiv.style.display = "block";
     } else {
         alertDiv.style.display = "none";
@@ -1811,20 +1597,72 @@ function mostrarAlertasCalidad(issues) {
 }
 
 // ======================================================================
-// Backend interacciones - CONEXIÓN REAL CON GOOGLE APPS SCRIPT
+// Backend interacciones vía fetch (CORS permitido requerido)
 // ======================================================================
 
-// Cargar datos protegidos desde Apps Script
-function loadDataFromServer() {
+// LOGIN
+async function doLogin(username, password) {
   showLoading();
-  google.script.run
-    .withSuccessHandler(function(rows){
-      // rows = arreglo de objetos {Fecha, Farmacia, Turno, ...}
-      originalData = rows.map(r => {
-        const Fecha_iso     = toISO(r.Fecha);
-        const Cantidad_num  = toNumber(r.Cantidad);
-        const Timestamp_obj = parseTS(r.Timestamp);
+  try {
+    const resp = await fetch(BACKEND_URL + "?action=login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        usuario: username,
+        codigo:  password
+      })
+    });
+    const js = await resp.json();
+    hideLoading();
 
+    if (js.status !== "OK") {
+      showLoginError(js.message || "Credenciales inválidas");
+      return;
+    }
+
+    currentUser  = js.user;
+    currentToken = js.token;
+
+    document.getElementById("activeUser").textContent = currentUser;
+    showDashboardScreen();
+
+    // cargar datos reales
+    loadDataFromServer();
+
+  } catch (err) {
+    hideLoading();
+    showLoginError("Error de red o CORS");
+  }
+}
+
+// GET DATA
+async function loadDataFromServer() {
+  showLoading();
+  try {
+    const resp = await fetch(BACKEND_URL + "?action=getData", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        token: currentToken
+      })
+    });
+    const js = await resp.json();
+
+    hideLoading();
+
+    if (js.status !== "OK") {
+        alert("Error al obtener datos: " + (js.message || "desconocido"));
+        currentUser  = null;
+        currentToken = null;
+        showLoginScreen();
+        return;
+    }
+
+    // js.data: [{Fecha, Farmacia, ...}]
+    originalData = js.data.map(r => {
+        const Fecha_iso     = toISO(r.Fecha || "");
+        const Cantidad_num  = toNumber(r.Cantidad || "");
+        const Timestamp_obj = parseTS(r.Timestamp || "");
         return {
           Fecha:        r.Fecha || "",
           Fecha_iso:    Fecha_iso,
@@ -1841,52 +1679,22 @@ function loadDataFromServer() {
           Timestamp:    r.Timestamp || "",
           Timestamp_obj: Timestamp_obj
         };
-      });
+    });
 
-      filteredData = [...originalData];
+    filteredData = [...originalData];
+    populateFilters();
+    refreshDashboard();
 
-      populateFilters();
-      refreshDashboard();
-
-      hideLoading();
-    })
-    .withFailureHandler(function(err){
-      console.error("Error getDataSecure:", err);
-      hideLoading();
-      alert("Sesión inválida o expirada. Vuelva a iniciar sesión.");
-      // volver a login
-      currentUser  = null;
-      currentToken = null;
-      showLoginScreen();
-    })
-    .getDataSecure(currentToken); // llama Code.gs/getDataSecure(token)
+  } catch (err) {
+    hideLoading();
+    alert("Fallo de red o CORS");
+    currentUser  = null;
+    currentToken = null;
+    showLoginScreen();
+  }
 }
 
-// Login seguro contra Apps Script
-function doLogin(username, password) {
-  showLoading();
-  google.script.run
-    .withSuccessHandler(function(resp){
-      hideLoading();
-      if (resp && resp.ok) {
-        currentUser  = resp.user;
-        currentToken = resp.token;
-        document.getElementById("activeUser").textContent = currentUser;
-        showDashboardScreen();
-        loadDataFromServer();
-      } else {
-        showLoginError(resp && resp.msg ? resp.msg : "Error de autenticación");
-      }
-    })
-    .withFailureHandler(function(err){
-      hideLoading();
-      console.error("loginAPI error:", err);
-      showLoginError("No se pudo autenticar. Intente de nuevo.");
-    })
-    .loginAPI(username, password); // Code.gs/loginAPI
-}
-
-// Cerrar sesión (simplemente limpiar estado local)
+// LOGOUT
 function doLogout() {
   currentUser  = null;
   currentToken = null;
@@ -1898,15 +1706,12 @@ function doLogout() {
 // ======================================================================
 
 function refreshDashboard() {
-  // KPIs
   const k = calcKPIs(filteredData);
   renderKPIs(k);
-  
-  // KPIs especializados
+
   const kEspecializados = calcKPIsEspecializados(filteredData);
   renderKPIsEspecializados(kEspecializados);
 
-  // Gráficas existentes
   destroyCharts();
   createChartDiaFarmacia();
   createTurnoChart();
@@ -1917,8 +1722,6 @@ function refreshDashboard() {
   createTopKitsChart();
   createKitsCantidadChart();
   createKitsQuirfanoChart();
-  
-  // Nuevas gráficas
   createRotacionQuirfanosChart();
   createEficienciaPersonalChart();
   createPatronesConsumoChart();
@@ -1926,21 +1729,17 @@ function refreshDashboard() {
   createPrevisionConsumoChart();
   createEstacionalidadChart();
 
-  // Tabla
   updateDataTable();
-  
-  // Calidad de datos
+
   const issues = checkDataQuality(filteredData);
   mostrarAlertasCalidad(issues);
 }
 
 // ======================================================================
-// Init al cargar DOM
+// Init
 // ======================================================================
 
 document.addEventListener("DOMContentLoaded", function(){
-
-  // listeners UI
   document.getElementById("loginForm").addEventListener("submit", function(ev){
     ev.preventDefault();
     const u = document.getElementById("usuario").value.trim().toLowerCase();
@@ -1955,18 +1754,9 @@ document.addEventListener("DOMContentLoaded", function(){
   document.getElementById("exportData").addEventListener("click", exportData);
   document.getElementById("logoutBtn").addEventListener("click", doLogout);
 
-  // flujo inicial según lo que inyectó Code.gs
-  if (AUTH_OK_INIT && SESSION_TOKEN) {
-    // ya hay sesión válida
-    currentUser  = INITIAL_USER || "";
-    currentToken = SESSION_TOKEN || "";
-    document.getElementById("activeUser").textContent = currentUser;
-    showDashboardScreen();
-    loadDataFromServer();
-  } else {
-    // no hay sesión todavía
-    showLoginScreen();
-  }
+  // Al estar en GitHub Pages no tenemos sesión previa integrada,
+  // así que siempre mostramos la pantalla de login al cargar.
+  showLoginScreen();
 });
 </script>
 

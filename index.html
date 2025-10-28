@@ -710,10 +710,10 @@
 
 <script>
 // ======================================================================
-// CONFIG
+// CONFIGURACIÓN
 // ======================================================================
 
-// credenciales válidas
+// Credenciales válidas
 const AUTH_MAP = {
   "dbmeza":  "3704196",
   "clawes":  "524307",
@@ -721,127 +721,100 @@ const AUTH_MAP = {
   "dbazan":  "1943078"
 };
 
-// sesión inicial (sin login automático)
+// Google Sheet origen de datos
+const SHEET_ID   = "13mzYK7HsvwiKyMXDpZJ3d1fLRvkwPYbOKUeedYSUh68";
+const SHEET_NAME = "Registros";
+
+// Estado inicial de sesión pre-logueada (en GitHub Pages siempre false)
 const AUTH_OK_INIT  = false;
 const SESSION_TOKEN = "";
 const INITIAL_USER  = "";
 
-// ID del Spreadsheet y nombre de la hoja
-const SHEET_ID   = "13mzYK7HsvwiKyMXDpZJ3d1fLRvkwPYbOKUeedYSUh68";
-const SHEET_NAME = "Registros";
-
 // ======================================================================
 // Estado global
 // ======================================================================
-let originalData = [];
-let filteredData = [];
-let charts = {};
-let currentUser = null;
-let currentToken = null;
+let originalData   = [];
+let filteredData   = [];
+let charts         = {};
+let currentUser    = null;
+let currentToken   = null;
 
 // ======================================================================
-// DEMO_DATA (fallback si falla la hoja real)
+// Helpers de parseo CSV
 // ======================================================================
-const DEMO_DATA = [
-    {
-        Fecha: "2025-06-19",
-        Farmacia: "Qx1",
-        Turno: "Turno Mañana",
-        Tipo: "Anestesiólogo",
-        Nombre: "Cesar Emilio Britez Gomez",
-        "Quirófano Nro": "Q1",
-        Codigo_kit: "2057.0",
-        Nombre_kit: "FCIA QUI1 MALE9",
-        Cantidad: "1.0",
-        Observaciones: "",
-        Usuario: "Yanina_Coronel",
-        Timestamp: "2025-06-20 10:50:21.827000"
-    },
-    {
-        Fecha: "2025-06-19",
-        Farmacia: "Qx1",
-        Turno: "Turno Mañana",
-        Tipo: "Anestesiólogo",
-        Nombre: "Carlos Maria Baez Insfran",
-        "Quirófano Nro": "Q2",
-        Codigo_kit: "2035.0",
-        Nombre_kit: "FCIA QUI1 MALE8",
-        Cantidad: "1.0",
-        Observaciones: "",
-        Usuario: "Yanina_Coronel",
-        Timestamp: "2025-06-20 10:50:21.827000"
-    },
-    {
-        Fecha: "2025-06-19",
-        Farmacia: "Qx1",
-        Turno: "Turno Mañana",
-        Tipo: "Circulante",
-        Nombre: "LIBRADA VILLAGRA",
-        "Quirófano Nro": "Q1",
-        Codigo_kit: "2068.0",
-        Nombre_kit: "Fcia Q°1 KIQ6",
-        Cantidad: "1.0",
-        Observaciones: "",
-        Usuario: "Yanina_Coronel",
-        Timestamp: "2025-06-20 10:50:21.827000"
-    },
-    {
-        Fecha: "2025-06-23",
-        Farmacia: "Qx1",
-        Turno: "Turno Mañana",
-        Tipo: "Anestesiólogo",
-        Nombre: "Claudia Rebeca Ibarrola Recalde",
-        "Quirófano Nro": "Q3",
-        Codigo_kit: "2033.0",
-        Nombre_kit: "FCIA QUI1 MALE6",
-        Cantidad: "1.0",
-        Observaciones: "",
-        Usuario: "Yanina_Coronel",
-        Timestamp: "2025-06-23 11:54:02.307000"
-    },
-    {
-        Fecha: "2025-06-24",
-        Farmacia: "Qx1",
-        Turno: "Turno Tarde",
-        Tipo: "Anestesiólogo",
-        Nombre: "Chanisse Cheda Gamarra",
-        "Quirófano Nro": "Q4",
-        Codigo_kit: "2031.0",
-        Nombre_kit: "FCIA QUI1 MALE4",
-        Cantidad: "2.0",
-        Observaciones: "",
-        Usuario: "Yanina_Coronel",
-        Timestamp: "2025-06-24 17:55:34.008000"
-    },
-    {
-        Fecha: "2025-06-25",
-        Farmacia: "Qx2",
-        Turno: "Turno Mañana",
-        Tipo: "Anestesiólogo",
-        Nombre: "Miguel Jose Franco Figueredo",
-        "Quirófano Nro": "Q2",
-        Codigo_kit: "2029.0",
-        Nombre_kit: "Maletín 2 (3P)",
-        Cantidad: "4.0",
-        Observaciones: "",
-        Usuario: "Andrea_Riquelme",
-        Timestamp: "2025-06-26 11:53:26.278000"
-    },
-    {
-        Fecha: "2025-06-26",
-        Farmacia: "Qx2",
-        Turno: "Turno Tarde",
-        Tipo: "Anestesiólogo",
-        Nombre: "Miguel Jose Franco Figueredo",
-        "Quirófano Nro": "Q2",
-        Codigo_kit: "2029.0",
-        Nombre_kit: "Maletín 2 (3P)",
-        Cantidad: "3.0",
-        Observaciones: "SUSPENDIDAS= 2",
-        Usuario: "Andrea_Riquelme",
-        Timestamp: "2025-06-26 17:47:26.944000"
+
+// Parsea CSV en arrays de filas, cada fila = array de celdas.
+// Soporta comillas dobles, comas dentro de comillas, saltos de línea estándar.
+function parseCSV(raw) {
+    const rows = [];
+    let curRow = [];
+    let curVal = "";
+    let inQuotes = false;
+
+    for (let i = 0; i < raw.length; i++) {
+        const c = raw[i];
+        const next = raw[i+1];
+
+        if (inQuotes) {
+            if (c === '"' && next === '"') {
+                // comilla escapada ""
+                curVal += '"';
+                i++;
+            } else if (c === '"') {
+                // fin de bloque con comillas
+                inQuotes = false;
+            } else {
+                curVal += c;
+            }
+        } else {
+            if (c === '"') {
+                inQuotes = true;
+            } else if (c === ",") {
+                curRow.push(curVal.trim());
+                curVal = "";
+            } else if (c === "\r") {
+                // ignorar \r; se maneja en \n
+            } else if (c === "\n") {
+                curRow.push(curVal.trim());
+                rows.push(curRow);
+                curRow = [];
+                curVal = "";
+            } else {
+                curVal += c;
+            }
+        }
     }
-];
+    // último valor si no terminó en \n
+    if (curVal.length > 0 || inQuotes || curRow.length > 0) {
+        curRow.push(curVal.trim());
+        rows.push(curRow);
+    }
+
+    return rows;
+}
+
+// Convierte filas CSV (arrays) a objetos usando la primera fila como headers
+function rowsToObjects(rows) {
+    if (!rows || rows.length < 2) return [];
+
+    const headersRaw = rows[0];
+    // normalizamos headers quitando espacios duplicados
+    const headers = headersRaw.map(h => (h || "").trim());
+
+    const out = [];
+    for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (row.every(c => c === "")) {
+            continue; // fila vacía
+        }
+        const obj = {};
+        for (let j = 0; j < headers.length; j++) {
+            obj[headers[j]] = row[j] !== undefined ? row[j] : "";
+        }
+        out.push(obj);
+    }
+    return out;
+}
 
 // ======================================================================
 // Utilidades de datos
@@ -849,14 +822,21 @@ const DEMO_DATA = [
 
 function toISO(dateStr) {
   if (!dateStr) return null;
+
+  // ya viene como yyyy-mm-dd
   const m = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (m) return dateStr;
 
-  const m2 = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  // dd/mm/yyyy
+  const m2 = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (m2) {
-    const dd = m2[1], mm = m2[2], yyyy = m2[3];
+    const dd = m2[1].padStart(2,"0");
+    const mm = m2[2].padStart(2,"0");
+    const yyyy = m2[3];
     return `${yyyy}-${mm}-${dd}`;
   }
+
+  // fallback
   const dObj = new Date(dateStr);
   if (!isNaN(dObj.getTime())) {
     const dd2 = String(dObj.getDate()).padStart(2,"0");
@@ -864,6 +844,7 @@ function toISO(dateStr) {
     const yyyy2 = dObj.getFullYear();
     return `${yyyy2}-${mm2}-${dd2}`;
   }
+
   return null;
 }
 
@@ -882,6 +863,8 @@ function toNumber(x) {
 
 function parseTS(ts) {
   if (!ts) return null;
+  // Timestamp suele venir "dd/mm/yyyy hh:mm:ss"
+  // Separamos por espacio
   const parts = ts.split(" ");
   const baseISO = toISO(parts[0] || "");
   if (!baseISO) return null;
@@ -927,7 +910,9 @@ function calcKPIs(data) {
   const farmSet = new Set(data.map(r => r.Farmacia));
   const nFarm   = farmSet.size;
 
-  const diasSet = new Set(data.map(r => r.Fecha_iso).filter(d => !!d));
+  const diasSet = new Set(
+    data.map(r => r.Fecha_iso).filter(d => !!d)
+  );
   const nDias   = diasSet.size || 1;
   const prom    = total / nDias;
 
@@ -953,9 +938,9 @@ function inferirEspecialidades(data) {
         if (r.Nombre_kit) {
             const kit = r.Nombre_kit.toUpperCase();
             let especialidadDetectada = "Otra";
-            for (const [key, value] of Object.entries(mapeoEspecialidades)) {
+            for (const key in mapeoEspecialidades) {
                 if (kit.includes(key)) {
-                    especialidadDetectada = value;
+                    especialidadDetectada = mapeoEspecialidades[key];
                     break;
                 }
             }
@@ -982,8 +967,8 @@ function calcKPIsEspecializados(data) {
             turnoCount[r.Turno] = (turnoCount[r.Turno] || 0) + 1;
         }
     });
-    const turnoMasActivo = Object.keys(turnoCount).length > 0
-        ? Object.keys(turnoCount).reduce((a, b) =>
+    const turnoMasActivo = Object.keys(turnoCount).length > 0 ?
+        Object.keys(turnoCount).reduce((a, b) =>
             turnoCount[a] > turnoCount[b] ? a : b
         )
         : "-";
@@ -996,15 +981,15 @@ function calcKPIsEspecializados(data) {
     const kitsPorProc = total > 0 ? (unidades / total).toFixed(1) : "0.0";
     
     const especialidades = inferirEspecialidades(data);
-    const especialidadPrincipal = Object.keys(especialidades).length > 0
-        ? Object.keys(especialidades).reduce((a, b) =>
+    const especialidadPrincipal = Object.keys(especialidades).length > 0 ?
+        Object.keys(especialidades).reduce((a, b) =>
             especialidades[a] > especialidades[b] ? a : b
         )
         : "-";
     
     const quirfanosUnicos = [...new Set(data.map(r => r.Quirofano).filter(q => q))];
-    const eficiencia = quirfanosUnicos.length > 0
-        ? (total / (quirfanosUnicos.length * nDias)).toFixed(1)
+    const eficiencia = quirfanosUnicos.length > 0 ?
+        (total / (quirfanosUnicos.length * nDias)).toFixed(1)
         : "0.0";
 
     return { 
@@ -1360,8 +1345,8 @@ function createKitsCantidadChart() {
           "rgba(153, 102, 255, 0.7)",
           "rgba(255, 159, 64, 0.7)"
         ]
-      }]
-    },
+      }]}
+    ,
     options:{
       responsive:true,
       maintainAspectRatio:false
@@ -1400,8 +1385,7 @@ function createKitsQuirfanoChart() {
   });
 }
 
-// eficiencia operativa
-
+// Eficiencia operativa
 function createRotacionQuirfanosChart() {
     const ctx = document.getElementById("rotacionQuirfanosChart").getContext("2d");
     const rotacion = {};
@@ -1500,6 +1484,7 @@ function createEficienciaPersonalChart() {
     });
 }
 
+// Patrones de consumo
 function createPatronesConsumoChart() {
     const ctx = document.getElementById("patronesConsumoChart").getContext("2d");
     const especialidades = inferirEspecialidades(filteredData);
@@ -1532,8 +1517,7 @@ function createPatronesConsumoChart() {
     });
 }
 
-// stock
-
+// Stock
 function createCurvaABCChart() {
     const ctx = document.getElementById("curvaABCChart").getContext("2d");
     const consumoKits = {};
@@ -1551,7 +1535,7 @@ function createCurvaABCChart() {
     let acumulado = 0;
     const dataABC = sorted.map(function(item) {
         acumulado += item[1];
-        const ratioAcum = acumulado / total;
+        const ratioAcum = total ? (acumulado / total) : 0;
         return {
             kit: item[0],
             consumo: item[1],
@@ -1914,147 +1898,84 @@ function mostrarAlertasCalidad(issues) {
 }
 
 // ======================================================================
-// Carga desde Google Sheets
+// Carga real desde Google Sheets (CSV público)
 // ======================================================================
-//
-// Vamos a usar la API "gviz/tq?sheet=Registros&tqx=out:json"
-// Esto devuelve algo como:
-//   google.visualization.Query.setResponse({...});
-//
-// Pasos:
-// 1. descargamos el texto
-// 2. extraemos el {...}
-// 3. armamos objetos por fila con los encabezados reales de la hoja
-// 4. normalizamos igual que hacíamos con DEMO_DATA
-//
-// Requisitos:
-// - La hoja debe estar compartida como "cualquier persona con el enlace: lector"
-//   (solo lectura). Si no, el fetch va a fallar y vamos a caer en DEMO_DATA.
-//
 
 async function loadSheetData() {
     showLoading();
-
-    const url =
-      "https://docs.google.com/spreadsheets/d/" +
-      SHEET_ID +
-      "/gviz/tq?sheet=" +
-      encodeURIComponent(SHEET_NAME) +
-      "&tqx=out:json";
-
     try {
-        const resp = await fetch(url);
-        const text = await resp.text();
+        // URL CSV pública de la hoja específica
+        // Nota: SHEET_NAME debe coincidir EXACTO con el nombre de la pestaña "Registros"
+        const csvURL =
+          "https://docs.google.com/spreadsheets/d/" +
+          encodeURIComponent(SHEET_ID) +
+          "/gviz/tq?tqx=out:csv&sheet=" +
+          encodeURIComponent(SHEET_NAME);
 
-        // extraer el JSON puro de dentro de setResponse(...)
-        // ejemplo: google.visualization.Query.setResponse(<AQUÍ>);
-        const match = text.match(/setResponse\\(([\s\S]+)\\);?/);
-        if (!match) {
-            throw new Error("Formato inesperado de respuesta de Google Sheets");
+        const resp = await fetch(csvURL);
+        if (!resp.ok) {
+            throw new Error("No se pudo leer la hoja (resp " + resp.status + ")");
         }
-        const payload = JSON.parse(match[1]);
 
-        // headers
-        const cols = payload.table.cols.map(c => c.label || c.id || "");
-        // filas
-        const rows = payload.table.rows || [];
+        const rawCSV = await resp.text();
 
-        // transformamos cada fila a objeto {header: value}
-        const rawRows = rows.map(r => {
-            const obj = {};
-            r.c.forEach((cell, idx) => {
-                const header = cols[idx] || ("col" + idx);
-                obj[header] = cell ? cell.v : "";
-            });
-            return obj;
-        });
+        // 1) Parsear CSV en filas
+        const rows = parseCSV(rawCSV);
+        // 2) Convertir filas en objetos clave-valor
+        const sheetObjects = rowsToObjects(rows);
 
-        // ahora normalizamos al formato interno
-        originalData = rawRows.map(function(r){
-            // asumimos que la hoja tiene estas columnas exactas:
+        // 3) Normalizar al formato interno esperado
+        originalData = sheetObjects.map(function(r){
+            // nombres esperados según tu sheet:
             // Fecha, Farmacia, Turno, Tipo, Nombre,
             // Quirófano Nro, Codigo_kit, Nombre_kit,
             // Cantidad, Observaciones, Usuario, Timestamp
 
-            const Fecha        = r["Fecha"] || "";
-            const Farmacia     = r["Farmacia"] || "";
-            const Turno        = r["Turno"] || "";
-            const Tipo         = r["Tipo"] || "";
-            const Nombre       = r["Nombre"] || "";
-            const QuirofRaw    = r["Quirófano Nro"] || r["Quir\u00f3fano Nro"] || r["Quirofano Nro"] || "";
-            const Nombre_kit   = r["Nombre_kit"] || r["Nombre kit"] || r["Kit"] || "";
-            const Cantidad     = r["Cantidad"] || "";
-            const Observaciones= r["Observaciones"] || "";
-            const Usuario      = r["Usuario"] || "";
-            const Timestamp    = r["Timestamp"] || r["Marca de tiempo"] || r["Marca de tiempo "] || "";
-
+            const Fecha         = r["Fecha"] || r["fecha"] || "";
             const Fecha_iso     = toISO(Fecha);
-            const Cantidad_num  = toNumber(Cantidad);
-            const Timestamp_obj = parseTS(Timestamp);
+            const Cantidad_raw  = r["Cantidad"] || r["cantidad"] || "";
+            const Cantidad_num  = toNumber(Cantidad_raw);
+            const Timestamp_raw = r["Timestamp"] || r["timestamp"] || "";
+            const Timestamp_obj = parseTS(Timestamp_raw);
+
+            const Qraw = r["Quirófano Nro"] || r["Quirofano Nro"] || r["Quirófano"] || r["Quirofano"] || "";
 
             return {
                 Fecha:        Fecha,
                 Fecha_iso:    Fecha_iso,
-                Farmacia:     Farmacia,
-                Turno:        Turno,
-                Tipo:         Tipo,
-                Nombre:       Nombre,
-                Quirofano:    normalizeQuirfano(QuirofRaw),
-                Nombre_kit:   Nombre_kit,
-                Cantidad:     Cantidad,
+                Farmacia:     r["Farmacia"] || r["farmacia"] || "",
+                Turno:        r["Turno"] || r["turno"] || "",
+                Tipo:         r["Tipo"] || r["tipo"] || "",
+                Nombre:       r["Nombre"] || r["nombre"] || "",
+                Quirofano:    normalizeQuirfano(Qraw),
+                Nombre_kit:   r["Nombre_kit"] || r["Nombre kit"] || r["Nombre kit "] || r["nombre_kit"] || "",
+                Cantidad:     Cantidad_raw,
                 Cantidad_num: Cantidad_num,
-                Observaciones: Observaciones,
-                Usuario:      Usuario,
-                Timestamp:    Timestamp,
+                Observaciones: r["Observaciones"] || r["observaciones"] || "",
+                Usuario:      r["Usuario"] || r["usuario"] || "",
+                Timestamp:    Timestamp_raw,
                 Timestamp_obj: Timestamp_obj
             };
         });
 
         filteredData = originalData.slice();
+
         populateFilters();
         refreshDashboard();
-        hideLoading();
-
     } catch (err) {
-        console.error("Error cargando hoja, usando DEMO_DATA:", err);
-        // fallback local si falla el fetch
-        loadLocalDataFallback();
+        console.error("Error cargando hoja:", err);
+        alert("No se pudo cargar datos reales desde la hoja Registros. ¿Está compartida como 'cualquiera con el enlace - lector'? Se usarán 0 filas.");
+        originalData = [];
+        filteredData = [];
+        populateFilters();
+        refreshDashboard();
+    } finally {
+        hideLoading();
     }
 }
 
-// fallback en caso de error de permisos/red
-function loadLocalDataFallback() {
-    originalData = DEMO_DATA.map(function(r){
-        const Fecha_iso     = toISO(r.Fecha);
-        const Cantidad_num  = toNumber(r.Cantidad);
-        const Timestamp_obj = parseTS(r.Timestamp);
-
-        return {
-          Fecha:        r.Fecha || "",
-          Fecha_iso:    Fecha_iso,
-          Farmacia:     r.Farmacia || "",
-          Turno:        r.Turno || "",
-          Tipo:         r.Tipo || "",
-          Nombre:       r.Nombre || "",
-          Quirofano:    normalizeQuirfano(r["Quirófano Nro"] || r["Quir\u00fano Nro"] || ""),
-          Nombre_kit:   r.Nombre_kit || "",
-          Cantidad:     r.Cantidad || "",
-          Cantidad_num: Cantidad_num,
-          Observaciones: r.Observaciones || "",
-          Usuario:      r.Usuario || "",
-          Timestamp:    r.Timestamp || "",
-          Timestamp_obj: Timestamp_obj
-        };
-    });
-
-    filteredData = originalData.slice();
-    populateFilters();
-    refreshDashboard();
-    hideLoading();
-}
-
 // ======================================================================
-// Login local
+// Login local (sin backend server)
 // ======================================================================
 
 async function doLogin(username, password) {
@@ -2073,11 +1994,12 @@ async function doLogin(username, password) {
     document.getElementById("activeUser").textContent = currentUser;
     showDashboardScreen();
 
-    // después del login cargamos datos reales
-    loadSheetData();
+    // Cargar datos reales desde la hoja
+    await loadSheetData();
 
   } catch (err) {
     hideLoading();
+    console.error(err);
     showLoginError("Fallo interno");
   }
 }
@@ -2143,12 +2065,14 @@ document.addEventListener("DOMContentLoaded", function(){
   document.getElementById("exportData").addEventListener("click", exportData);
   document.getElementById("logoutBtn").addEventListener("click", doLogout);
 
+  // flujo inicial (normalmente no hay sesión previa en GitHub Pages)
   if (AUTH_OK_INIT && SESSION_TOKEN) {
     currentUser  = INITIAL_USER || "";
     currentToken = SESSION_TOKEN || "";
     document.getElementById("activeUser").textContent = currentUser;
     showDashboardScreen();
-    loadSheetData(); // login automático -> también cargar datos
+    // Cargamos la hoja directamente si ya está "logueado"
+    loadSheetData();
   } else {
     showLoginScreen();
   }

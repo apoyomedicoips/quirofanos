@@ -308,17 +308,49 @@
 
         <div class="filter-section">
             <div class="row">
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label for="filtroDesde" class="form-label">Desde, fecha</label>
                     <input type="date" class="form-control" id="filtroDesde">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label for="filtroHasta" class="form-label">Hasta, fecha</label>
                     <input type="date" class="form-control" id="filtroHasta">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label for="filtroFarmacia" class="form-label">Farmacia / Almacén</label>
                     <select class="form-select" id="filtroFarmacia">
+                        <option value="__ALL__">Todas</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="filtroTurno" class="form-label">Turno</label>
+                    <select class="form-select" id="filtroTurno">
+                        <option value="__ALL__">Todos</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="filtroTipo" class="form-label">Tipo</label>
+                    <select class="form-select" id="filtroTipo">
+                        <option value="__ALL__">Todos</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="filtroQuirofano" class="form-label">Quirófano</label>
+                    <select class="form-select" id="filtroQuirofano">
+                        <option value="__ALL__">Todos</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-md-3">
+                    <label for="filtroKit" class="form-label">Kit</label>
+                    <select class="form-select" id="filtroKit">
+                        <option value="__ALL__">Todos</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="filtroEspecialidad" class="form-label">Especialidad</label>
+                    <select class="form-select" id="filtroEspecialidad">
                         <option value="__ALL__">Todas</option>
                     </select>
                 </div>
@@ -336,7 +368,7 @@
                 <div class="stat-card">
                     <div class="kpi-label-with-info">
                         <span class="kpi-label">Procedimientos totales</span>
-                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Número total de procedimientos quirúrgicos registrados en el período filtrado. Representa el volumen total de actividad en quirófanos."></i>
+                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Número total de procedimientos quirúrgicos registrados en el período filtrado. Este KPI representa el volumen general de actividad en los quirófanos, permitiendo evaluar la carga operativa y comparar con períodos anteriores para detectar tendencias de crecimiento o disminución en la demanda de servicios quirúrgicos."></i>
                     </div>
                     <div class="kpi-value" id="kpiProcedimientos">0</div>
                     <div class="kpi-foot">En período filtrado</div>
@@ -346,7 +378,7 @@
                 <div class="stat-card">
                     <div class="kpi-label-with-info">
                         <span class="kpi-label">Eficiencia quirófano</span>
-                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Porcentaje de utilización de recursos en quirófanos, calculado como procedimientos por quirófano por día. Valores >80% indican alta eficiencia, <60% posible subutilización."></i>
+                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Porcentaje de utilización de recursos en quirófanos, calculado como el promedio de procedimientos por quirófano por día. Valores superiores al 80% indican una alta eficiencia y óptimo uso de instalaciones; valores inferiores al 60% sugieren posible subutilización, cuellos de botella o necesidad de ajustes en programación. Este KPI es clave para optimizar recursos y reducir tiempos de espera."></i>
                     </div>
                     <div class="kpi-value" id="kpiEficiencia">0%</div>
                     <div class="kpi-foot">Uso de recursos</div>
@@ -356,7 +388,7 @@
                 <div class="stat-card">
                     <div class="kpi-label-with-info">
                         <span class="kpi-label">Kits por procedimiento</span>
-                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Promedio de kits consumidos por cada procedimiento. Ayuda a identificar eficiencia en el uso de materiales; valores altos podrían indicar desperdicio o complejidad de casos."></i>
+                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Promedio de kits consumidos por cada procedimiento registrado. Este indicador ayuda a evaluar la eficiencia en el uso de materiales; valores elevados podrían señalar desperdicio, variabilidad en protocolos o casos de mayor complejidad, mientras que valores bajos indican optimización. Monitorearlo permite identificar oportunidades para estandarizar procesos y reducir costos."></i>
                     </div>
                     <div class="kpi-value" id="kpiKitsPorProc">0.0</div>
                     <div class="kpi-foot">Promedio</div>
@@ -366,7 +398,7 @@
                 <div class="stat-card">
                     <div class="kpi-label-with-info">
                         <span class="kpi-label">Turno más activo</span>
-                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Turno con el mayor volumen de procedimientos. Útil para planificación de recursos y personal."></i>
+                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Turno con el mayor volumen de procedimientos (por ejemplo, mañana, tarde o noche). Este KPI es útil para la planificación de recursos humanos y materiales, permitiendo asignar personal adicional o ajustar horarios para equilibrar la carga y mejorar la eficiencia operativa durante picos de actividad."></i>
                     </div>
                     <div class="kpi-value" id="kpiTurnoActivo">-</div>
                     <div class="kpi-foot">Por volumen</div>
@@ -376,7 +408,7 @@
                 <div class="stat-card">
                     <div class="kpi-label-with-info">
                         <span class="kpi-label">Tasa de suspensión</span>
-                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Porcentaje de procedimientos suspendidos. Valores >10% podrían indicar problemas logísticos o de preparación."></i>
+                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Porcentaje de procedimientos suspendidos respecto al total registrado. Valores superiores al 10% pueden indicar problemas logísticos, falta de preparación o issues con suministros/pacientes. Analizar este KPI ayuda a identificar causas raíz y implementar medidas preventivas para minimizar interrupciones y mejorar la continuidad del servicio."></i>
                     </div>
                     <div class="kpi-value" id="kpiSuspension">0%</div>
                     <div class="kpi-foot">De procedimientos</div>
@@ -386,7 +418,7 @@
                 <div class="stat-card">
                     <div class="kpi-label-with-info">
                         <span class="kpi-label">Especialidad principal</span>
-                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Especialidad con mayor consumo de kits, inferida del tipo de kit. Indica el foco principal de actividad quirúrgica."></i>
+                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Especialidad con el mayor consumo de kits, inferida automáticamente del tipo de kit utilizado. Este KPI destaca el foco principal de actividad quirúrgica, facilitando la asignación presupuestaria, capacitación especializada y gestión de inventarios específicos para áreas de alta demanda."></i>
                     </div>
                     <div class="kpi-value" id="kpiEspecialidad">-</div>
                     <div class="kpi-foot">Por consumo</div>
@@ -400,7 +432,7 @@
                 <div class="stat-card">
                     <div class="kpi-label-with-info">
                         <span class="kpi-label">Descargas filtradas</span>
-                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Número total de registros de descargas de kits en el período filtrado. Representa la actividad total registrada."></i>
+                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Número total de registros de descargas de kits en el período y filtros aplicados. Representa la actividad total registrada, útil para validar la integridad de datos y comparar volúmenes entre diferentes segmentos o períodos."></i>
                     </div>
                     <div class="kpi-value" id="kpiDescargas">0</div>
                     <div class="kpi-foot">Filas registradas</div>
@@ -410,7 +442,7 @@
                 <div class="stat-card">
                     <div class="kpi-label-with-info">
                         <span class="kpi-label">Promedio diario</span>
-                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Promedio de descargas por día en el período filtrado. Ayuda a entender la carga diaria promedio."></i>
+                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Promedio de descargas de kits por día en el rango filtrado. Este indicador proporciona insight sobre la carga operativa diaria promedio, ayudando a detectar variaciones estacionales o impactos de eventos específicos en la actividad."></i>
                     </div>
                     <div class="kpi-value" id="kpiPromedioDiario">0</div>
                     <div class="kpi-foot">Descargas / día</div>
@@ -420,7 +452,7 @@
                 <div class="stat-card">
                     <div class="kpi-label-with-info">
                         <span class="kpi-label">Farmacias activas</span>
-                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Número de farmacias o almacenes con actividad en el período filtrado."></i>
+                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Número de farmacias o almacenes con registros de actividad en el período filtrado. Ayuda a evaluar la distribución geográfica o departamental de la actividad quirúrgica."></i>
                     </div>
                     <div class="kpi-value" id="kpiFarmaciasActivas">0</div>
                     <div class="kpi-foot">en rango filtrado</div>
@@ -430,7 +462,7 @@
                 <div class="stat-card">
                     <div class="kpi-label-with-info">
                         <span class="kpi-label">Total de kits</span>
-                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Cantidad total de unidades de kits consumidas en el período filtrado."></i>
+                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Cantidad total de unidades de kits consumidas en el período filtrado. Este KPI es esencial para el control de inventarios, pronóstico de compras y análisis de costos asociados al consumo de materiales quirúrgicos."></i>
                     </div>
                     <div class="kpi-value" id="kpiTotalKits">0</div>
                     <div class="kpi-foot">unidades consumidas</div>
@@ -458,6 +490,9 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="data-tab" data-bs-toggle="tab" data-bs-target="#data" type="button" role="tab">Datos</button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="segmentation-tab" data-bs-toggle="tab" data-bs-target="#segmentation" type="button" role="tab">Segmentación</button>
+            </li>
         </ul>
 
         <div class="tab-content" id="dashboardTabsContent">
@@ -469,7 +504,7 @@
                             <div class="card-header">
                                 <div class="title-with-info">
                                     <h5>Descargas por día y farmacia</h5>
-                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Gráfico de líneas que muestra el número de descargas de kits por fecha y farmacia/almacén. Ayuda a identificar picos de actividad y distribución por ubicación."></i>
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Gráfico de líneas que muestra la evolución diaria del número de descargas de kits por farmacia/almacén. Permite identificar picos de actividad, tendencias temporales y diferencias entre ubicaciones, facilitando el análisis de demanda y posibles anomalías en el flujo operativo."></i>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -477,7 +512,7 @@
                                     <canvas id="chartDiaFarmacia"></canvas>
                                 </div>
                                 <div class="chart-note">
-                                    Métrica: número de registros (descargas de kits) por Fecha y Farmacia/Almacén.
+                                    Métrica: número de registros (descargas de kits) por Fecha y Farmacia/Almacén. Las líneas representan diferentes farmacias para comparación visual.
                                 </div>
                             </div>
                         </div>
@@ -490,7 +525,7 @@
                             <div class="card-header">
                                 <div class="title-with-info">
                                     <h5>Registros por Turno</h5>
-                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Distribución porcentual de registros por turno (mañana, tarde, noche). Útil para analizar carga por horario."></i>
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Distribución porcentual de registros por turno horario. Este gráfico ayuda a visualizar la carga de trabajo por período del día, identificando turnos sobrecargados para optimizar la asignación de personal y recursos."></i>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -505,7 +540,7 @@
                             <div class="card-header">
                                 <div class="title-with-info">
                                     <h5>Distribución por Tipo</h5>
-                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Distribución porcentual por tipo de personal (anestesiólogo, circulante). Muestra balance de actividad."></i>
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Distribución porcentual por tipo de personal involucrado (ej. anestesiólogo vs. circulante). Revela el balance de participación y puede indicar necesidades de entrenamiento o reasignación."></i>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -526,7 +561,7 @@
                             <div class="card-header">
                                 <div class="title-with-info">
                                     <h5>Anestesiólogos Más Activos</h5>
-                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Top 10 anestesiólogos por número de registros. Ayuda a identificar personal clave."></i>
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Ranking de los 10 anestesiólogos con más registros de actividad. Este gráfico identifica al personal más involucrado, útil para reconocimiento, carga de trabajo y planificación de rotaciones."></i>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -541,7 +576,7 @@
                             <div class="card-header">
                                 <div class="title-with-info">
                                     <h5>Circulantes Más Activos</h5>
-                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Top 10 circulantes por número de registros. Útil para gestión de equipo."></i>
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Ranking de los 10 circulantes con más registros. Ayuda en la gestión de equipo, detección de sobrecargas y evaluación de rendimiento individual."></i>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -559,7 +594,7 @@
                             <div class="card-header">
                                 <div class="title-with-info">
                                     <h5>Distribución de Personal por Quirófano</h5>
-                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Número de anestesiólogos y circulantes por quirófano. Muestra asignación de personal."></i>
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Número de anestesiólogos y circulantes asignados por quirófano. Este gráfico stacked bar muestra la distribución para evaluar equilibrio y posibles necesidades de reasignación."></i>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -580,7 +615,7 @@
                             <div class="card-header">
                                 <div class="title-with-info">
                                     <h5>Kits Más Utilizados</h5>
-                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Top 10 kits por cantidad consumida. Identifica los kits de mayor demanda."></i>
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Top 10 kits por cantidad total consumida. Identifica items de alta demanda para priorizar en inventarios y negociaciones con proveedores."></i>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -595,7 +630,7 @@
                             <div class="card-header">
                                 <div class="title-with-info">
                                     <h5>Cantidad Total de Kits por Tipo</h5>
-                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Distribución de cantidad de kits por tipo de personal."></i>
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Distribución de la cantidad total de kits consumidos por tipo de personal. Ayuda a entender patrones de uso por rol."></i>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -613,7 +648,7 @@
                             <div class="card-header">
                                 <div class="title-with-info">
                                     <h5>Distribución de Kits por Quirófano</h5>
-                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Cantidad total de kits consumidos por quirófano, ordenado por volumen."></i>
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Cantidad total de kits consumidos por cada quirófano, ordenado por volumen descendente. Revela quirófanos de alta actividad para enfocarse en mantenimiento y suministro."></i>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -634,7 +669,7 @@
                             <div class="card-header">
                                 <div class="title-with-info">
                                     <h5>Rotación de Quirófanos</h5>
-                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Promedio de procedimientos por día por quirófano. Indica nivel de utilización."></i>
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Promedio de procedimientos por día por cada quirófano. Este indicador mide la rotación y utilización, destacando quirófanos subutilizados o sobrecargados para optimizaciones."></i>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -642,7 +677,7 @@
                                     <canvas id="rotacionQuirfanosChart"></canvas>
                                 </div>
                                 <div class="chart-note">
-                                    Número de procedimientos por quirófano por día
+                                    Número de procedimientos por quirófano por día. Barras más altas indican mayor rotación.
                                 </div>
                             </div>
                         </div>
@@ -652,7 +687,7 @@
                             <div class="card-header">
                                 <div class="title-with-info">
                                     <h5>Eficiencia de Personal Médico</h5>
-                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Top 15 profesionales por procedimientos por día trabajado. Mide productividad individual."></i>
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Top 15 profesionales por promedio de procedimientos por día trabajado. Este KPI evalúa productividad individual, ayudando en evaluaciones de rendimiento y detección de líderes o necesidades de soporte."></i>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -660,7 +695,7 @@
                                     <canvas id="eficienciaPersonalChart"></canvas>
                                 </div>
                                 <div class="chart-note">
-                                    Procedimientos por profesional (top 15)
+                                    Procedimientos por profesional (top 15). Considera solo días activos.
                                 </div>
                             </div>
                         </div>
@@ -672,7 +707,7 @@
                             <div class="card-header">
                                 <div class="title-with-info">
                                     <h5>Análisis de Patrones de Consumo por Especialidad</h5>
-                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Consumo de kits por especialidad inferida del tipo de kit. Ayuda a entender demanda por área médica."></i>
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Consumo total de kits por especialidad inferida del tipo de kit. Este análisis revela patrones de demanda por área médica, facilitando pronósticos y asignación de recursos específicos."></i>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -680,7 +715,7 @@
                                     <canvas id="patronesConsumoChart"></canvas>
                                 </div>
                                 <div class="chart-note">
-                                    Consumo de kits por tipo de especialidad inferida
+                                    Consumo de kits por tipo de especialidad inferida. 'Otra' incluye kits no clasificados.
                                 </div>
                             </div>
                         </div>
@@ -696,7 +731,7 @@
                             <div class="card-header">
                                 <div class="title-with-info">
                                     <h5>Curva ABC de Kits</h5>
-                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Clasificación de kits por valor de consumo (A: 80%, B: 15%, C: 5%). Prioriza gestión de inventario."></i>
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Clasificación de kits por valor acumulativo de consumo (A: 80% del valor, B: 15%, C: 5%). Este análisis sigue el principio de Pareto para priorizar la gestión de inventarios en items de alto impacto, optimizando costos y disponibilidad."></i>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -704,7 +739,7 @@
                                     <canvas id="curvaABCChart"></canvas>
                                 </div>
                                 <div class="chart-note">
-                                    Clasificación por valor de consumo (80/20)
+                                    Clasificación por valor de consumo (80/20). Colores: Rojo=A, Naranja=B, Verde=C.
                                 </div>
                             </div>
                         </div>
@@ -714,7 +749,7 @@
                             <div class="card-header">
                                 <div class="title-with-info">
                                     <h5>Previsión de Consumo</h5>
-                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Tendencia de consumo mensual basada en regresión lineal de los últimos 6 meses, con proyección a 3 meses futuros. Ayuda en planificación de stock."></i>
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Tendencia mensual de consumo con proyección avanzada a 3 meses usando suavizado exponencial (alpha=0.3) para capturar tendencias recientes. Basado en los últimos 6 meses, este análisis predictivo ayuda en la planificación de compras, evitando stockouts o excesos, con consideración de variabilidad estacional."></i>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -722,7 +757,7 @@
                                     <canvas id="previsionConsumoChart"></canvas>
                                 </div>
                                 <div class="chart-note">
-                                    Tendencia y proyección mensual
+                                    Tendencia y proyección mensual usando suavizado exponencial. Línea punteada indica pronóstico.
                                 </div>
                             </div>
                         </div>
@@ -734,7 +769,7 @@
                             <div class="card-header">
                                 <div class="title-with-info">
                                     <h5>Análisis de Estacionalidad</h5>
-                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Consumo de kits por día de la semana y turno. Revela patrones estacionales para optimizar programación."></i>
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Consumo de kits por día de la semana y turno horario. Este gráfico stacked revela patrones estacionales y horarios, permitiendo optimizar programación, asignación de stock y personal para períodos de alta demanda."></i>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -742,7 +777,7 @@
                                     <canvas id="estacionalidadChart"></canvas>
                                 </div>
                                 <div class="chart-note">
-                                    Consumo por día de la semana y turno
+                                    Consumo por día de la semana y turno. Colores diferencian turnos para análisis comparativo.
                                 </div>
                             </div>
                         </div>
@@ -756,7 +791,7 @@
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <div class="title-with-info">
                             <h5>Registros recientes, filtrados</h5>
-                            <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Tabla con los 100 registros más recientes según filtros, ordenados por timestamp descendente. Permite exportar a CSV."></i>
+                            <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Tabla detallada con los 100 registros más recientes según filtros aplicados, ordenados por timestamp descendente. Incluye todas las variables clave para auditoría y análisis granular; soporta exportación a CSV para informes externos."></i>
                         </div>
                         <button class="btn btn-sm btn-outline-light" id="exportData">
                             <i class="bi bi-download"></i> Exportar Datos
@@ -784,6 +819,44 @@
                         </div>
                         <div class="footnote">
                             Muestra hasta 100 filas más recientes según filtros aplicados.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEGMENTATION -->
+            <div class="tab-pane fade" id="segmentation" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="title-with-info">
+                                    <h5>Consumo por Especialidad y Turno</h5>
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Gráfico stacked de consumo de kits por especialidad y turno. Permite segmentar datos para análisis detallado de patrones por área médica y horario."></i>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="segmentEspecialidadTurnoChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="title-with-info">
+                                    <h5>Procedimientos por Quirofano y Tipo</h5>
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Distribución de procedimientos por quirófano y tipo de personal. Útil para segmentar y analizar utilización por instalación y rol."></i>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="segmentQuirofanoTipoChart"></canvas>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1023,8 +1096,10 @@ function calcKPIs(data) {
   return { total, unidades, nFarm, prom };
 }
 
-function inferirEspecialidades(data) {
-    const mapeoEspecialidades = {
+function inferEspecialidad(kit) {
+    if (!kit) return "Otra";
+    const kitUpper = kit.toUpperCase();
+    const mapeo = {
         "OFTALMOLOGIA": "Oftalmología",
         "UROLOGIA": "Urología",
         "COLONOSCOPIA": "Gastroenterología",
@@ -1036,21 +1111,19 @@ function inferirEspecialidades(data) {
         "MALETÍN": "Equipos Móviles",
         "MALETIN": "Equipos Móviles"
     };
+    for (const key in mapeo) {
+        if (kitUpper.includes(key)) {
+            return mapeo[key];
+        }
+    }
+    return "Otra";
+}
 
+function inferirEspecialidades(data) {
     const especialidades = {};
     data.forEach(r => {
-        if (r.Nombre_kit) {
-            const kit = r.Nombre_kit.toUpperCase();
-            let especialidadDetectada = "Otra";
-            for (const key in mapeoEspecialidades) {
-                if (kit.includes(key)) {
-                    especialidadDetectada = mapeoEspecialidades[key];
-                    break;
-                }
-            }
-            especialidades[especialidadDetectada] =
-                (especialidades[especialidadDetectada] || 0) + (r.Cantidad_num || 0);
-        }
+        const esp = r.Especialidad || inferEspecialidad(r.Nombre_kit);
+        especialidades[esp] = (especialidades[esp] || 0) + (r.Cantidad_num || 0);
     });
     return especialidades;
 }
@@ -1198,6 +1271,9 @@ function createChartDiaFarmacia() {
           callbacks: {
             label: function(c) { return c.dataset.label + ": " + c.parsed.y + " descargas"; }
           }
+        },
+        datalabels: {
+          display: false
         }
       },
       scales: {
@@ -1234,8 +1310,20 @@ function createTurnoChart() {
     },
     options: {
       responsive: true,
-      maintainAspectRatio: false
-    }
+      maintainAspectRatio: false,
+      plugins: {
+        datalabels: {
+          color: '#fff',
+          font: { weight: 'bold' },
+          formatter: (value, ctx) => {
+            let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+            let percentage = Math.round((value / sum) * 100) + '%';
+            return percentage;
+          }
+        }
+      }
+    },
+    plugins: [ChartDataLabels]
   });
 }
 
@@ -1262,8 +1350,20 @@ function createTipoChart() {
     },
     options: {
       responsive: true,
-      maintainAspectRatio: false
-    }
+      maintainAspectRatio: false,
+      plugins: {
+        datalabels: {
+          color: '#fff',
+          font: { weight: 'bold' },
+          formatter: (value, ctx) => {
+            let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+            let percentage = Math.round((value / sum) * 100) + '%';
+            return percentage;
+          }
+        }
+      }
+    },
+    plugins: [ChartDataLabels]
   });
 }
 
@@ -1277,7 +1377,7 @@ function createTopAnestesiologosChart() {
       if (r.Nombre) {
         anestData[r.Nombre] = (anestData[r.Nombre] || 0) + 1;
       }
-    });
+  });
 
   const top = Object.entries(anestData)
     .sort(function(a,b){ return b[1] - a[1]; })
@@ -1301,8 +1401,17 @@ function createTopAnestesiologosChart() {
       maintainAspectRatio: false,
       scales: {
         x: { beginAtZero: true }
+      },
+      plugins: {
+        datalabels: {
+          anchor: 'end',
+          align: 'end',
+          color: var(--text-main),
+          font: { weight: 'bold' }
+        }
       }
-    }
+    },
+    plugins: [ChartDataLabels]
   });
 }
 
@@ -1340,8 +1449,17 @@ function createTopCirculantesChart() {
       maintainAspectRatio: false,
       scales: {
         x: { beginAtZero: true }
+      },
+      plugins: {
+        datalabels: {
+          anchor: 'end',
+          align: 'end',
+          color: var(--text-main),
+          font: { weight: 'bold' }
+        }
       }
-    }
+    },
+    plugins: [ChartDataLabels]
   });
 }
 
@@ -1359,7 +1477,7 @@ function createPersonalQuirfanoChart() {
     }
   });
 
-  const quirfanos = Object.keys(M);
+  const quirfanos = Object.keys(M).sort();
   const anestArr  = quirfanos.map(function(q){ return M[q]["Anestesiólogo"]; });
   const circArr   = quirfanos.map(function(q){ return M[q]["Circulante"]; });
 
@@ -1388,7 +1506,13 @@ function createPersonalQuirfanoChart() {
       responsive: true,
       maintainAspectRatio: false,
       scales: {
-        y: { beginAtZero: true }
+        y: { beginAtZero: true, stacked: true },
+        x: { stacked: true }
+      },
+      plugins: {
+        datalabels: {
+          display: false
+        }
       }
     }
   });
@@ -1426,8 +1550,17 @@ function createTopKitsChart() {
       maintainAspectRatio:false,
       scales: {
         x: { beginAtZero:true }
+      },
+      plugins: {
+        datalabels: {
+          anchor: 'end',
+          align: 'end',
+          color: var(--text-main),
+          font: { weight: 'bold' }
+        }
       }
-    }
+    },
+    plugins: [ChartDataLabels]
   });
 }
 
@@ -1453,8 +1586,20 @@ function createKitsCantidadChart() {
     ,
     options:{
       responsive:true,
-      maintainAspectRatio:false
-    }
+      maintainAspectRatio:false,
+      plugins: {
+        datalabels: {
+          color: '#fff',
+          font: { weight: 'bold' },
+          formatter: (value, ctx) => {
+            let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+            let percentage = Math.round((value / sum) * 100) + '%';
+            return percentage;
+          }
+        }
+      }
+    },
+    plugins: [ChartDataLabels]
   });
 }
 
@@ -1484,8 +1629,17 @@ function createKitsQuirfanoChart() {
       maintainAspectRatio:false,
       scales:{
         y:{ beginAtZero:true }
+      },
+      plugins: {
+        datalabels: {
+          anchor: 'end',
+          align: 'end',
+          color: var(--text-main),
+          font: { weight: 'bold' }
+        }
       }
-    }
+    },
+    plugins: [ChartDataLabels]
   });
 }
 
@@ -1531,8 +1685,17 @@ function createRotacionQuirfanosChart() {
                 x: {
                     title: { display: true, text: "Quirófano" }
                 }
+            },
+            plugins: {
+                datalabels: {
+                    anchor: 'end',
+                    align: 'end',
+                    color: var(--text-main),
+                    font: { weight: 'bold' }
+                }
             }
-        }
+        },
+        plugins: [ChartDataLabels]
     });
 }
 
@@ -1583,8 +1746,17 @@ function createEficienciaPersonalChart() {
                     beginAtZero: true,
                     title: { display: true, text: "Procedimientos por día trabajado" }
                 }
+            },
+            plugins: {
+                datalabels: {
+                    anchor: 'end',
+                    align: 'end',
+                    color: var(--text-main),
+                    font: { weight: 'bold' }
+                }
             }
-        }
+        },
+        plugins: [ChartDataLabels]
     });
 }
 
@@ -1616,8 +1788,17 @@ function createPatronesConsumoChart() {
                     beginAtZero: true,
                     title: { display: true, text: "Unidades consumidas" }
                 }
+            },
+            plugins: {
+                datalabels: {
+                    anchor: 'end',
+                    align: 'end',
+                    color: var(--text-main),
+                    font: { weight: 'bold' }
+                }
             }
-        }
+        },
+        plugins: [ChartDataLabels]
     });
 }
 
@@ -1681,8 +1862,17 @@ function createCurvaABCChart() {
                     beginAtZero: true,
                     title: { display: true, text: "Unidades consumidas" }
                 }
+            },
+            plugins: {
+                datalabels: {
+                    anchor: 'end',
+                    align: 'end',
+                    color: var(--text-main),
+                    font: { weight: 'bold' }
+                }
             }
-        }
+        },
+        plugins: [ChartDataLabels]
     });
 }
 
@@ -1703,44 +1893,26 @@ function createPrevisionConsumoChart() {
     const ultimosMeses = meses.slice(-6);
     const ultimosConsumos = consumos.slice(-6);
 
-    const n = ultimosConsumos.length;
-    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
-    ultimosConsumos.forEach(function(y, i){
-        const x = i + 1; // Ajuste: empezar x en 1 para evitar división por cero si n=1
-        sumX += x;
-        sumY += y;
-        sumXY += x * y;
-        sumX2 += x * x;
-    });
+    // Suavizado exponencial avanzado (alpha = 0.3)
+    const alpha = 0.3;
+    let smoothed = [ultimosConsumos[0] || 0];
+    for (let i = 1; i < ultimosConsumos.length; i++) {
+        smoothed[i] = alpha * ultimosConsumos[i] + (1 - alpha) * smoothed[i-1];
+    }
 
-    let pendiente = 0;
-    let intercepto = 0;
-    if (n > 1) {
-        const denom = (n * sumX2 - sumX * sumX);
-        if (denom !== 0) {
-            pendiente = (n * sumXY - sumX * sumY) / denom;
-            intercepto = (sumY - pendiente * sumX) / n;
-        } else {
-            pendiente = 0;
-            intercepto = sumY / n;
-        }
-    } else if (n === 1) {
-        pendiente = 0;
-        intercepto = ultimosConsumos[0];
-    } else {
-        pendiente = 0;
-        intercepto = 0;
+    // Proyección con suavizado
+    let lastSmoothed = smoothed[smoothed.length - 1];
+    const consumosProyeccion = [];
+    for (let i = 0; i < 3; i++) {
+        lastSmoothed = alpha * lastSmoothed + (1 - alpha) * lastSmoothed; // Proyección constante con suavizado
+        consumosProyeccion.push(Math.max(0, Math.round(lastSmoothed)));
     }
 
     const mesesProyeccion = [];
-    const consumosProyeccion = [];
-    let lastMes = ultimosMeses[ultimosMeses.length - 1] || new Date().toISOString().substring(0, 7);
+    let lastMes = ultimosMeses[ultimosMeses.length - 1] || '2025-10'; // Usando fecha actual aproximada
     for (let i = 1; i <= 3; i++) {
-        const nextMes = addMonthsToYYYYMM(lastMes, i);
-        mesesProyeccion.push(nextMes);
-        const nextIndex = n + i;
-        const proy = intercepto + pendiente * nextIndex;
-        consumosProyeccion.push(Math.max(0, Math.round(proy)));
+        lastMes = addMonthsToYYYYMM(lastMes, 1);
+        mesesProyeccion.push(lastMes);
     }
 
     charts.previsionConsumoChart = new Chart(ctx, {
@@ -1753,6 +1925,15 @@ function createPrevisionConsumoChart() {
                     data: ultimosConsumos.concat(Array(3).fill(null)),
                     borderColor: "rgba(54, 162, 235, 1)",
                     backgroundColor: "rgba(54, 162, 235, 0.1)",
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: true
+                },
+                {
+                    label: "Consumo Suavizado",
+                    data: smoothed.concat(Array(3).fill(null)),
+                    borderColor: "rgba(75, 192, 192, 1)",
+                    backgroundColor: "rgba(75, 192, 192, 0.1)",
                     borderWidth: 2,
                     tension: 0.3,
                     fill: true
@@ -1776,6 +1957,11 @@ function createPrevisionConsumoChart() {
                 y: {
                     beginAtZero: true,
                     title: { display: true, text: "Unidades consumidas" }
+                }
+            },
+            plugins: {
+                datalabels: {
+                    display: false
                 }
             }
         }
@@ -1826,7 +2012,8 @@ function createEstacionalidadChart() {
         return {
             label: turno,
             data: dataVals,
-            backgroundColor: bg
+            backgroundColor: bg,
+            stack: 'stack'
         };
     });
 
@@ -1842,11 +2029,99 @@ function createEstacionalidadChart() {
             scales: {
                 y: {
                     beginAtZero: true,
+                    stacked: true,
                     title: { display: true, text: "Unidades consumidas" }
                 },
                 x: {
+                    stacked: true,
                     title: { display: true, text: "Día de la semana" }
                 }
+            },
+            plugins: {
+                datalabels: {
+                    display: false
+                }
+            }
+        }
+    });
+}
+
+// Nuevos gráficos para segmentación
+function createSegmentEspecialidadTurnoChart() {
+    const ctx = document.getElementById("segmentEspecialidadTurnoChart").getContext("2d");
+    const M = {};
+    filteredData.forEach(r => {
+        const esp = inferEspecialidad(r.Nombre_kit);
+        const turno = r.Turno || "Sin turno";
+        if (!M[esp]) M[esp] = {};
+        M[esp][turno] = (M[esp][turno] || 0) + (r.Cantidad_num || 0);
+    });
+
+    const esps = Object.keys(M).sort();
+    const turnos = [...new Set(esps.flatMap(e => Object.keys(M[e])))].sort();
+
+    const datasets = turnos.map(t => {
+        return {
+            label: t,
+            data: esps.map(e => M[e][t] || 0),
+            backgroundColor: t.includes("Mañana") ? "rgba(255, 206, 86, 0.7)" :
+                             t.includes("Tarde") ? "rgba(54, 162, 235, 0.7)" :
+                             t.includes("Noche") ? "rgba(153, 102, 255, 0.7)" : "rgba(201, 203, 207, 0.7)",
+            stack: 'stack'
+        };
+    });
+
+    charts.segmentEspecialidadTurnoChart = new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: esps,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { stacked: true, beginAtZero: true },
+                x: { stacked: true }
+            }
+        }
+    });
+}
+
+function createSegmentQuirofanoTipoChart() {
+    const ctx = document.getElementById("segmentQuirofanoTipoChart").getContext("2d");
+    const M = {};
+    filteredData.forEach(r => {
+        const q = r.Quirofano || "Sin asignar";
+        const tp = r.Tipo || "Sin tipo";
+        if (!M[q]) M[q] = {};
+        M[q][tp] = (M[q][tp] || 0) + 1;
+    });
+
+    const qs = Object.keys(M).sort();
+    const tipos = [...new Set(qs.flatMap(q => Object.keys(M[q])))].sort();
+
+    const datasets = tipos.map(tp => {
+        return {
+            label: tp,
+            data: qs.map(q => M[q][tp] || 0),
+            backgroundColor: tp === "Anestesiólogo" ? "rgba(153, 102, 255, 0.7)" : "rgba(255, 159, 64, 0.7)",
+            stack: 'stack'
+        };
+    });
+
+    charts.segmentQuirofanoTipoChart = new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: qs,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { stacked: true, beginAtZero: true },
+                x: { stacked: true }
             }
         }
     });
@@ -1896,20 +2171,36 @@ function updateDataTable() {
 // ======================================================================
 
 function populateFilters() {
-  const sel = document.getElementById("filtroFarmacia");
+  populateSelect("filtroFarmacia", r => r.Farmacia);
+  populateSelect("filtroTurno", r => r.Turno);
+  populateSelect("filtroTipo", r => r.Tipo);
+  populateSelect("filtroQuirofano", r => r.Quirofano);
+  populateSelect("filtroKit", r => r.Nombre_kit);
+
+  // Para especialidad
+  const selEsp = document.getElementById("filtroEspecialidad");
+  while (selEsp.options.length > 1) {
+    selEsp.remove(1);
+  }
+  const esps = new Set(originalData.map(r => inferEspecialidad(r.Nombre_kit)));
+  Array.from(esps).sort().forEach(e => {
+    const opt = document.createElement("option");
+    opt.value = e;
+    opt.textContent = e;
+    selEsp.appendChild(opt);
+  });
+}
+
+function populateSelect(id, extractor) {
+  const sel = document.getElementById(id);
   while (sel.options.length > 1) {
     sel.remove(1);
   }
-  const farms = [];
-  originalData.forEach(function(r){
-    if (r.Farmacia && farms.indexOf(r.Farmacia) === -1) {
-        farms.push(r.Farmacia);
-    }
-  });
-  farms.sort().forEach(function(f){
+  const values = new Set(originalData.map(extractor).filter(v => v));
+  Array.from(values).sort().forEach(v => {
     const opt = document.createElement("option");
-    opt.value = f;
-    opt.textContent = f;
+    opt.value = v;
+    opt.textContent = v;
     sel.appendChild(opt);
   });
 }
@@ -1918,9 +2209,19 @@ function applyFilters() {
   const fd = document.getElementById("filtroDesde").value || null;
   const fh = document.getElementById("filtroHasta").value || null;
   const ff = document.getElementById("filtroFarmacia").value || "__ALL__";
+  const ft = document.getElementById("filtroTurno").value || "__ALL__";
+  const fti = document.getElementById("filtroTipo").value || "__ALL__";
+  const fq = document.getElementById("filtroQuirofano").value || "__ALL__";
+  const fk = document.getElementById("filtroKit").value || "__ALL__";
+  const fe = document.getElementById("filtroEspecialidad").value || "__ALL__";
 
   filteredData = originalData.filter(function(r){
     if (ff !== "__ALL__" && r.Farmacia !== ff) return false;
+    if (ft !== "__ALL__" && r.Turno !== ft) return false;
+    if (fti !== "__ALL__" && r.Tipo !== fti) return false;
+    if (fq !== "__ALL__" && r.Quirofano !== fq) return false;
+    if (fk !== "__ALL__" && r.Nombre_kit !== fk) return false;
+    if (fe !== "__ALL__" && inferEspecialidad(r.Nombre_kit) !== fe) return false;
     if (fd && r.Fecha_iso && r.Fecha_iso < fd) return false;
     if (fh && r.Fecha_iso && r.Fecha_iso > fh) return false;
     return true;
@@ -1933,6 +2234,11 @@ function resetFilters() {
   document.getElementById("filtroDesde").value    = "";
   document.getElementById("filtroHasta").value    = "";
   document.getElementById("filtroFarmacia").value = "__ALL__";
+  document.getElementById("filtroTurno").value = "__ALL__";
+  document.getElementById("filtroTipo").value = "__ALL__";
+  document.getElementById("filtroQuirofano").value = "__ALL__";
+  document.getElementById("filtroKit").value = "__ALL__";
+  document.getElementById("filtroEspecialidad").value = "__ALL__";
 
   filteredData = originalData.slice();
   refreshDashboard();
@@ -2153,6 +2459,8 @@ function refreshDashboard() {
   createCurvaABCChart();
   createPrevisionConsumoChart();
   createEstacionalidadChart();
+  createSegmentEspecialidadTurnoChart();
+  createSegmentQuirofanoTipoChart();
 
   updateDataTable();
 
@@ -2176,6 +2484,11 @@ document.addEventListener("DOMContentLoaded", function(){
   document.getElementById("filtroDesde").addEventListener("change", applyFilters);
   document.getElementById("filtroHasta").addEventListener("change", applyFilters);
   document.getElementById("filtroFarmacia").addEventListener("change", applyFilters);
+  document.getElementById("filtroTurno").addEventListener("change", applyFilters);
+  document.getElementById("filtroTipo").addEventListener("change", applyFilters);
+  document.getElementById("filtroQuirofano").addEventListener("change", applyFilters);
+  document.getElementById("filtroKit").addEventListener("change", applyFilters);
+  document.getElementById("filtroEspecialidad").addEventListener("change", applyFilters);
   document.getElementById("btnReset").addEventListener("click", resetFilters);
   document.getElementById("exportData").addEventListener("click", exportData);
   document.getElementById("logoutBtn").addEventListener("click", doLogout);

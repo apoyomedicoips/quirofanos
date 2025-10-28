@@ -9,7 +9,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
 
-    <!-- Chart.js -->
+    <!-- Chart.js + plugins -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
@@ -929,10 +929,13 @@ const AUTH_MAP = {
 const SHEET_ID   = "13mzYK7HsvwiKyMXDpZJ3d1fLRvkwPYbOKUeedYSUh68";
 const SHEET_NAME = "Registros";
 
-// Estado inicial de sesión pre-logueada (en GitHub Pages siempre false)
+// Estado inicial de sesión pre-logueada
 const AUTH_OK_INIT  = false;
 const SESSION_TOKEN = "";
 const INITIAL_USER  = "";
+
+// Colores helper JS equivalentes al CSS
+const TEXT_MAIN_COLOR = "#f8fafc";
 
 // ======================================================================
 // Estado global
@@ -947,8 +950,6 @@ let currentToken   = null;
 // Helpers de parseo CSV
 // ======================================================================
 
-// Parsea CSV en arrays de filas, cada fila = array de celdas.
-// Soporta comillas dobles, comas dentro de comillas, saltos de línea estándar.
 function parseCSV(raw) {
     const rows = [];
     let curRow = [];
@@ -961,11 +962,9 @@ function parseCSV(raw) {
 
         if (inQuotes) {
             if (c === '"' && next === '"') {
-                // comilla escapada ""
                 curVal += '"';
                 i++;
             } else if (c === '"') {
-                // fin de bloque con comillas
                 inQuotes = false;
             } else {
                 curVal += c;
@@ -977,7 +976,7 @@ function parseCSV(raw) {
                 curRow.push(curVal.trim());
                 curVal = "";
             } else if (c === "\r") {
-                // ignorar \r; se maneja en \n
+                // skip
             } else if (c === "\n") {
                 curRow.push(curVal.trim());
                 rows.push(curRow);
@@ -988,7 +987,6 @@ function parseCSV(raw) {
             }
         }
     }
-    // último valor si no terminó en \n
     if (curVal.length > 0 || inQuotes || curRow.length > 0) {
         curRow.push(curVal.trim());
         rows.push(curRow);
@@ -997,20 +995,14 @@ function parseCSV(raw) {
     return rows;
 }
 
-// Convierte filas CSV (arrays) a objetos usando la primera fila como headers
 function rowsToObjects(rows) {
     if (!rows || rows.length < 2) return [];
-
     const headersRaw = rows[0];
-    // normalizamos headers quitando espacios duplicados
     const headers = headersRaw.map(h => (h || "").trim());
-
     const out = [];
     for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
-        if (row.every(c => c === "")) {
-            continue; // fila vacía
-        }
+        if (row.every(c => c === "")) continue;
         const obj = {};
         for (let j = 0; j < headers.length; j++) {
             obj[headers[j]] = row[j] !== undefined ? row[j] : "";
@@ -1027,11 +1019,9 @@ function rowsToObjects(rows) {
 function toISO(dateStr) {
   if (!dateStr) return null;
 
-  // ya viene como yyyy-mm-dd
   const m = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (m) return dateStr;
 
-  // dd/mm/yyyy
   const m2 = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (m2) {
     const dd = m2[1].padStart(2,"0");
@@ -1040,7 +1030,6 @@ function toISO(dateStr) {
     return `${yyyy}-${mm}-${dd}`;
   }
 
-  // fallback
   const dObj = new Date(dateStr);
   if (!isNaN(dObj.getTime())) {
     const dd2 = String(dObj.getDate()).padStart(2,"0");
@@ -1067,8 +1056,6 @@ function toNumber(x) {
 
 function parseTS(ts) {
   if (!ts) return null;
-  // Timestamp suele venir "dd/mm/yyyy hh:mm:ss"
-  // Separamos por espacio
   const parts = ts.split(" ");
   const baseISO = toISO(parts[0] || "");
   if (!baseISO) return null;
@@ -1078,7 +1065,6 @@ function parseTS(ts) {
   return d;
 }
 
-// Función para agregar meses a una fecha YYYY-MM
 function addMonthsToYYYYMM(yyyyMm, monthsToAdd) {
     const [year, month] = yyyyMm.split('-').map(Number);
     let newMonth = month + monthsToAdd;
@@ -1117,7 +1103,7 @@ function showLoginError(msg) {
 }
 
 // ======================================================================
-// KPIs y cálculos estadísticos
+// KPIs
 // ======================================================================
 
 function calcKPIs(data) {
@@ -1266,24 +1252,18 @@ function destroyCharts() {
   charts = {};
 }
 
-function getCommonOptions() {
+// helper común de zoom/pan para charts que lo necesitan
+function zoomPanPluginConfig(enable=true) {
+    if (!enable) return undefined;
     return {
-        plugins: {
-            zoom: {
-                zoom: {
-                    wheel: {
-                        enabled: true,
-                    },
-                    pinch: {
-                        enabled: true
-                    },
-                    mode: 'xy',
-                },
-                pan: {
-                    enabled: true,
-                    mode: 'xy',
-                }
-            }
+        zoom: {
+            wheel: { enabled: true },
+            pinch: { enabled: true },
+            mode: 'xy'
+        },
+        pan: {
+            enabled: true,
+            mode: 'xy'
         }
     };
 }
@@ -1319,13 +1299,17 @@ function createChartDiaFarmacia() {
     };
   });
 
-  const options = {
+  charts.chartDiaFarmacia = new Chart(ctx, {
     type: "line",
     data: { labels, datasets },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: "index", intersect: false },
+      scales: {
+        x: { title: { display: true, text: "Fecha" } },
+        y: { beginAtZero: true, title: { display: true, text: "Descargas" } }
+      },
       plugins: {
         legend: { position: "bottom" },
         tooltip: {
@@ -1335,17 +1319,11 @@ function createChartDiaFarmacia() {
         },
         datalabels: {
           display: false
-        }
-      },
-      scales: {
-        x: { title: { display: true, text: "Fecha" } },
-        y: { beginAtZero: true, title: { display: true, text: "Descargas" } }
-      },
-      ...getCommonOptions()
+        },
+        zoom: zoomPanPluginConfig(true)
+      }
     }
-  };
-
-  charts.chartDiaFarmacia = new Chart(ctx, options);
+  });
 }
 
 function createTurnoChart() {
@@ -1377,16 +1355,16 @@ function createTurnoChart() {
       maintainAspectRatio: false,
       plugins: {
         datalabels: {
-          color: '#fff',
+          color: TEXT_MAIN_COLOR,
           font: { weight: 'bold' },
           formatter: (value, ctx) => {
             let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
             let percentage = Math.round((value / sum) * 100) + '%';
             return percentage;
           }
-        }
-      },
-      ...getCommonOptions()
+        },
+        zoom: zoomPanPluginConfig(false)
+      }
     },
     plugins: [ChartDataLabels]
   });
@@ -1418,16 +1396,16 @@ function createTipoChart() {
       maintainAspectRatio: false,
       plugins: {
         datalabels: {
-          color: '#fff',
+          color: TEXT_MAIN_COLOR,
           font: { weight: 'bold' },
           formatter: (value, ctx) => {
             let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
             let percentage = Math.round((value / sum) * 100) + '%';
             return percentage;
           }
-        }
-      },
-      ...getCommonOptions()
+        },
+        zoom: zoomPanPluginConfig(false)
+      }
     },
     plugins: [ChartDataLabels]
   });
@@ -1472,11 +1450,11 @@ function createTopAnestesiologosChart() {
         datalabels: {
           anchor: 'end',
           align: 'end',
-          color: var(--text-main),
+          color: TEXT_MAIN_COLOR,
           font: { weight: 'bold' }
-        }
-      },
-      ...getCommonOptions()
+        },
+        zoom: zoomPanPluginConfig(true)
+      }
     },
     plugins: [ChartDataLabels]
   });
@@ -1511,21 +1489,21 @@ function createTopCirculantesChart() {
       }]
     },
     options: {
-      indexAxis: "y",
-      responsive: true,
-      maintainAspectRatio: false,
+      indexAxis:"y",
+      responsive:true,
+      maintainAspectRatio:false,
       scales: {
-        x: { beginAtZero: true }
+        x: { beginAtZero:true }
       },
       plugins: {
         datalabels: {
           anchor: 'end',
           align: 'end',
-          color: var(--text-main),
+          color: TEXT_MAIN_COLOR,
           font: { weight: 'bold' }
-        }
-      },
-      ...getCommonOptions()
+        },
+        zoom: zoomPanPluginConfig(true)
+      }
     },
     plugins: [ChartDataLabels]
   });
@@ -1580,9 +1558,9 @@ function createPersonalQuirfanoChart() {
       plugins: {
         datalabels: {
           display: false
-        }
-      },
-      ...getCommonOptions()
+        },
+        zoom: zoomPanPluginConfig(true)
+      }
     }
   });
 }
@@ -1624,11 +1602,11 @@ function createTopKitsChart() {
         datalabels: {
           anchor: 'end',
           align: 'end',
-          color: var(--text-main),
+          color: TEXT_MAIN_COLOR,
           font: { weight: 'bold' }
-        }
-      },
-      ...getCommonOptions()
+        },
+        zoom: zoomPanPluginConfig(true)
+      }
     },
     plugins: [ChartDataLabels]
   });
@@ -1652,23 +1630,23 @@ function createKitsCantidadChart() {
           "rgba(153, 102, 255, 0.7)",
           "rgba(255, 159, 64, 0.7)"
         ]
-      }]}
-    ,
+      }]
+    },
     options:{
       responsive:true,
       maintainAspectRatio:false,
       plugins: {
         datalabels: {
-          color: '#fff',
+          color: TEXT_MAIN_COLOR,
           font: { weight: 'bold' },
           formatter: (value, ctx) => {
             let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
             let percentage = Math.round((value / sum) * 100) + '%';
             return percentage;
           }
-        }
-      },
-      ...getCommonOptions()
+        },
+        zoom: zoomPanPluginConfig(false)
+      }
     },
     plugins: [ChartDataLabels]
   });
@@ -1705,11 +1683,11 @@ function createKitsQuirfanoChart() {
         datalabels: {
           anchor: 'end',
           align: 'end',
-          color: var(--text-main),
+          color: TEXT_MAIN_COLOR,
           font: { weight: 'bold' }
-        }
-      },
-      ...getCommonOptions()
+        },
+        zoom: zoomPanPluginConfig(true)
+      }
     },
     plugins: [ChartDataLabels]
   });
@@ -1762,11 +1740,11 @@ function createRotacionQuirfanosChart() {
                 datalabels: {
                     anchor: 'end',
                     align: 'end',
-                    color: var(--text-main),
+                    color: TEXT_MAIN_COLOR,
                     font: { weight: 'bold' }
-                }
-            },
-            ...getCommonOptions()
+                },
+                zoom: zoomPanPluginConfig(true)
+            }
         },
         plugins: [ChartDataLabels]
     });
@@ -1824,11 +1802,11 @@ function createEficienciaPersonalChart() {
                 datalabels: {
                     anchor: 'end',
                     align: 'end',
-                    color: var(--text-main),
+                    color: TEXT_MAIN_COLOR,
                     font: { weight: 'bold' }
-                }
-            },
-            ...getCommonOptions()
+                },
+                zoom: zoomPanPluginConfig(true)
+            }
         },
         plugins: [ChartDataLabels]
     });
@@ -1867,11 +1845,11 @@ function createPatronesConsumoChart() {
                 datalabels: {
                     anchor: 'end',
                     align: 'end',
-                    color: var(--text-main),
+                    color: TEXT_MAIN_COLOR,
                     font: { weight: 'bold' }
-                }
-            },
-            ...getCommonOptions()
+                },
+                zoom: zoomPanPluginConfig(true)
+            }
         },
         plugins: [ChartDataLabels]
     });
@@ -1942,11 +1920,11 @@ function createCurvaABCChart() {
                 datalabels: {
                     anchor: 'end',
                     align: 'end',
-                    color: var(--text-main),
+                    color: TEXT_MAIN_COLOR,
                     font: { weight: 'bold' }
-                }
-            },
-            ...getCommonOptions()
+                },
+                zoom: zoomPanPluginConfig(true)
+            }
         },
         plugins: [ChartDataLabels]
     });
@@ -1969,23 +1947,21 @@ function createPrevisionConsumoChart() {
     const ultimosMeses = meses.slice(-6);
     const ultimosConsumos = consumos.slice(-6);
 
-    // Suavizado exponencial avanzado (alpha = 0.3)
     const alpha = 0.3;
     let smoothed = [ultimosConsumos[0] || 0];
     for (let i = 1; i < ultimosConsumos.length; i++) {
         smoothed[i] = alpha * ultimosConsumos[i] + (1 - alpha) * smoothed[i-1];
     }
 
-    // Proyección con suavizado
     let lastSmoothed = smoothed[smoothed.length - 1];
     const consumosProyeccion = [];
     for (let i = 0; i < 3; i++) {
-        lastSmoothed = alpha * lastSmoothed + (1 - alpha) * lastSmoothed; // Proyección constante con suavizado
+        lastSmoothed = alpha * lastSmoothed + (1 - alpha) * lastSmoothed;
         consumosProyeccion.push(Math.max(0, Math.round(lastSmoothed)));
     }
 
     const mesesProyeccion = [];
-    let lastMes = ultimosMeses[ultimosMeses.length - 1] || '2025-10'; // Usando fecha actual aproximada
+    let lastMes = ultimosMeses[ultimosMeses.length - 1] || '2025-10';
     for (let i = 1; i <= 3; i++) {
         lastMes = addMonthsToYYYYMM(lastMes, 1);
         mesesProyeccion.push(lastMes);
@@ -2038,9 +2014,9 @@ function createPrevisionConsumoChart() {
             plugins: {
                 datalabels: {
                     display: false
-                }
-            },
-            ...getCommonOptions()
+                },
+                zoom: zoomPanPluginConfig(true)
+            }
         }
     });
 }
@@ -2117,14 +2093,14 @@ function createEstacionalidadChart() {
             plugins: {
                 datalabels: {
                     display: false
-                }
-            },
-            ...getCommonOptions()
+                },
+                zoom: zoomPanPluginConfig(true)
+            }
         }
     });
 }
 
-// Nuevos gráficos para segmentación
+// Segmentación
 function createSegmentEspecialidadTurnoChart() {
     const ctx = document.getElementById("segmentEspecialidadTurnoChart").getContext("2d");
     const M = {};
@@ -2162,7 +2138,12 @@ function createSegmentEspecialidadTurnoChart() {
                 y: { stacked: true, beginAtZero: true },
                 x: { stacked: true }
             },
-            ...getCommonOptions()
+            plugins: {
+                datalabels: {
+                    display: false
+                },
+                zoom: zoomPanPluginConfig(true)
+            }
         }
     });
 }
@@ -2184,7 +2165,9 @@ function createSegmentQuirofanoTipoChart() {
         return {
             label: tp,
             data: qs.map(q => M[q][tp] || 0),
-            backgroundColor: tp === "Anestesiólogo" ? "rgba(153, 102, 255, 0.7)" : "rgba(255, 159, 64, 0.7)",
+            backgroundColor: tp === "Anestesiólogo"
+                ? "rgba(153, 102, 255, 0.7)"
+                : "rgba(255, 159, 64, 0.7)",
             stack: 'stack'
         };
     });
@@ -2202,7 +2185,12 @@ function createSegmentQuirofanoTipoChart() {
                 y: { stacked: true, beginAtZero: true },
                 x: { stacked: true }
             },
-            ...getCommonOptions()
+            plugins: {
+                datalabels: {
+                    display: false
+                },
+                zoom: zoomPanPluginConfig(true)
+            }
         }
     });
 }
@@ -2252,7 +2240,12 @@ function createSegmentFarmaciaEspecialidadChart() {
                 y: { stacked: true, beginAtZero: true, title: { display: true, text: "Unidades consumidas" } },
                 x: { stacked: true, title: { display: true, text: "Farmacia" } }
             },
-            ...getCommonOptions()
+            plugins: {
+                datalabels: {
+                    display: false
+                },
+                zoom: zoomPanPluginConfig(true)
+            }
         }
     });
 }
@@ -2331,7 +2324,6 @@ function populateFilters() {
   populateSelect("filtroNombre", r => r.Nombre);
   populateSelect("filtroUsuario", r => r.Usuario);
 
-  // Para especialidad
   const selEsp = document.getElementById("filtroEspecialidad");
   while (selEsp.options.length > 1) {
     selEsp.remove(1);
@@ -2485,8 +2477,6 @@ function mostrarAlertasCalidad(issues) {
 async function loadSheetData() {
     showLoading();
     try {
-        // URL CSV pública de la hoja específica
-        // Nota: SHEET_NAME debe coincidir EXACTO con el nombre de la pestaña "Registros"
         const csvURL =
           "https://docs.google.com/spreadsheets/d/" +
           encodeURIComponent(SHEET_ID) +
@@ -2500,18 +2490,10 @@ async function loadSheetData() {
 
         const rawCSV = await resp.text();
 
-        // 1) Parsear CSV en filas
         const rows = parseCSV(rawCSV);
-        // 2) Convertir filas en objetos clave-valor
         const sheetObjects = rowsToObjects(rows);
 
-        // 3) Normalizar al formato interno esperado
         originalData = sheetObjects.map(function(r){
-            // nombres esperados según tu sheet:
-            // Fecha, Farmacia, Turno, Tipo, Nombre,
-            // Quirófano Nro, Codigo_kit, Nombre_kit,
-            // Cantidad, Observaciones, Usuario, Timestamp
-
             const Fecha         = r["Fecha"] || r["fecha"] || "";
             const Fecha_iso     = toISO(Fecha);
             const Cantidad_raw  = r["Cantidad"] || r["cantidad"] || "";
@@ -2575,7 +2557,6 @@ async function doLogin(username, password) {
     document.getElementById("activeUser").textContent = currentUser;
     showDashboardScreen();
 
-    // Cargar datos reales desde la hoja
     await loadSheetData();
 
   } catch (err) {
@@ -2656,17 +2637,14 @@ document.addEventListener("DOMContentLoaded", function(){
   document.getElementById("exportData").addEventListener("click", exportData);
   document.getElementById("logoutBtn").addEventListener("click", doLogout);
 
-  // Inicializar tooltips de Bootstrap
   const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-  const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+  [...tooltipTriggerList].map(el => new bootstrap.Tooltip(el));
 
-  // flujo inicial (normalmente no hay sesión previa en GitHub Pages)
   if (AUTH_OK_INIT && SESSION_TOKEN) {
     currentUser  = INITIAL_USER || "";
     currentToken = SESSION_TOKEN || "";
     document.getElementById("activeUser").textContent = currentUser;
     showDashboardScreen();
-    // Cargamos la hoja directamente si ya está "logueado"
     loadSheetData();
   } else {
     showLoginScreen();

@@ -1014,7 +1014,7 @@ function renderKPIs(k) {
 
 function renderKPIsEspecializados(k) {
     document.getElementById("kpiProcedimientos").textContent = k.total.toLocaleString("es-PY");
-    document.getElementById("kpiEficiencia").textContent = k.eficiencia + "%";
+    document.getElementById("kpiEficiencia").textContent = k.eficiencia;
     document.getElementById("kpiKitsPorProc").textContent = k.kitsPorProc;
     document.getElementById("kpiTurnoActivo").textContent = k.turnoMasActivo;
     document.getElementById("kpiSuspension").textContent = k.tasaSuspension + "%";
@@ -1517,6 +1517,80 @@ function createPatronesConsumoChart() {
     });
 }
 
+// -------- Tooltips (Bootstrap 5) --------
+function addInfoAfter(element, text) {
+  if (!element) return;
+  const span = document.createElement("span");
+  span.className = "info-icon";
+  span.setAttribute("data-bs-toggle","tooltip");
+  span.setAttribute("data-bs-placement","top");
+  span.setAttribute("title", text);
+  span.textContent = "i";
+  element.appendChild(span);
+}
+
+function initTooltips() {
+  const list = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+  list.map(function (el) {
+    try { return new bootstrap.Tooltip(el); } catch(_) { return null; }
+  });
+}
+
+// Inserta (i) en títulos de tarjetas y etiquetas KPI
+function injectInfoBadges() {
+  // KPI secundarios
+  addInfoAfter(document.querySelector('#kpiDescargas').closest('.stat-card').querySelector('.kpi-label'),
+    'Cantidad de registros (descargas) dentro del rango filtrado.');
+  addInfoAfter(document.querySelector('#kpiPromedioDiario').closest('.stat-card').querySelector('.kpi-label'),
+    'Registros por día (descargas totales / días con actividad).');
+  addInfoAfter(document.querySelector('#kpiFarmaciasActivas').closest('.stat-card').querySelector('.kpi-label'),
+    'Cantidad de farmacias/almacenes que tienen registros en el periodo.');
+  addInfoAfter(document.querySelector('#kpiTotalKits').closest('.stat-card').querySelector('.kpi-label'),
+    'Suma de la columna Cantidad en el periodo.');
+
+  // KPI principales
+  addInfoAfter(document.querySelector('#kpiProcedimientos').closest('.stat-card').querySelector('.kpi-label'),
+    'Total de procedimientos (aprox. = cantidad de registros de consumo de kits).');
+  addInfoAfter(document.querySelector('#kpiEficiencia').closest('.stat-card').querySelector('.kpi-label'),
+    'Índice de rotación: procedimientos / (quirófanos activos × días). No es un %.');
+  addInfoAfter(document.querySelector('#kpiKitsPorProc').closest('.stat-card').querySelector('.kpi-label'),
+    'Promedio de kits consumidos por procedimiento.');
+  addInfoAfter(document.querySelector('#kpiTurnoActivo').closest('.stat-card').querySelector('.kpi-label'),
+    'Turno con mayor cantidad de registros.');
+  addInfoAfter(document.querySelector('#kpiSuspension').closest('.stat-card').querySelector('.kpi-label'),
+    'Registros con “suspend” en Observaciones / total, en %.');
+  addInfoAfter(document.querySelector('#kpiEspecialidad').closest('.stat-card').querySelector('.kpi-label'),
+    'Especialidad inferida a partir del nombre del kit (heurística).');
+
+  // Títulos de gráficos (busca el <h5> padre del canvas)
+  const chartInfo = {
+    chartDiaFarmacia: 'Serie diaria de cantidad de descargas por farmacia/almacén.',
+    turnoChart: 'Distribución de registros por Turno.',
+    tipoChart: 'Distribución de registros por Tipo (Anestesiólogo, Circulante, etc.).',
+    topAnestesiologosChart: 'Top profesionales (Tipo=Anestesiólogo) por cantidad de registros.',
+    topCirculantesChart: 'Top Circulantes por cantidad de registros.',
+    personalQuirfanoChart: 'Conteo de registros por quirófano y tipo de personal.',
+    topKitsChart: 'Kits más consumidos (suma de Cantidad).',
+    kitsCantidadChart: 'Cantidad total de kits por Tipo.',
+    kitsQuirfanoChart: 'Suma de Cantidad por quirófano.',
+    rotacionQuirfanosChart: 'Procedimientos promedio por día para cada quirófano.',
+    eficienciaPersonalChart: 'Procedimientos/día trabajado por profesional (top 15).',
+    patronesConsumoChart: 'Consumo agrupado por especialidad inferida.',
+    curvaABCChart: 'Clasificación ABC según participación acumulada del consumo.',
+    previsionConsumoChart: 'Tendencia mensual y proyección lineal a 3 meses.',
+    estacionalidadChart: 'Consumo por día de la semana y turno.'
+  };
+  Object.keys(chartInfo).forEach(function(canvasId){
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const h5 = canvas.closest('.card').querySelector('.card-header h5');
+    addInfoAfter(h5, chartInfo[canvasId]);
+  });
+
+  initTooltips();
+}
+
+
 // Stock
 function createCurvaABCChart() {
     const ctx = document.getElementById("curvaABCChart").getContext("2d");
@@ -1583,89 +1657,121 @@ function createCurvaABCChart() {
 }
 
 function createPrevisionConsumoChart() {
-    const ctx = document.getElementById("previsionConsumoChart").getContext("2d");
+  const ctx = document.getElementById("previsionConsumoChart").getContext("2d");
 
-    const consumoMensual = {};
-    filteredData.forEach(r => {
-        if (r.Fecha_iso) {
-            const mes = r.Fecha_iso.substring(0, 7);
-            consumoMensual[mes] = (consumoMensual[mes] || 0) + (r.Cantidad_num || 0);
-        }
-    });
-
-    const meses = Object.keys(consumoMensual).sort();
-    const consumos = meses.map(function(mes){ return consumoMensual[mes]; });
-
-    const ultimosMeses = meses.slice(-6);
-    const ultimosConsumos = consumos.slice(-6);
-
-    const n = ultimosConsumos.length;
-    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
-    ultimosConsumos.forEach(function(y, i){
-        const x = i;
-        sumX += x;
-        sumY += y;
-        sumXY += x * y;
-        sumX2 += x * x;
-    });
-
-    let pendiente = 0;
-    let intercepto = 0;
-    if (n > 1) {
-        pendiente = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
-        intercepto = (sumY - pendiente * sumX) / n;
-    } else if (n === 1) {
-        pendiente = 0;
-        intercepto = ultimosConsumos[0];
+  // 1) Agregación mensual YYYY-MM
+  const consumoMensual = {};
+  filteredData.forEach(r => {
+    if (r.Fecha_iso) {
+      const mes = r.Fecha_iso.substring(0, 7); // YYYY-MM
+      consumoMensual[mes] = (consumoMensual[mes] || 0) + (r.Cantidad_num || 0);
     }
+  });
 
-    const mesesProyeccion = [];
-    const consumosProyeccion = [];
-    for (let i = 0; i < 3; i++) {
-        const nextIndex = n + i;
-        const proy = intercepto + pendiente * nextIndex;
-        mesesProyeccion.push("Proy " + (i+1));
-        consumosProyeccion.push(Math.max(0, Math.round(proy)));
+  // 2) Orden cronológico y DESCARTA MESES FUTUROS (bug de 2027-08)
+  const today = new Date();
+  const yNow  = today.getFullYear();
+  const mNow  = String(today.getMonth() + 1).padStart(2,'0');
+  const toMonth = `${yNow}-${mNow}`;
+
+  let meses = Object.keys(consumoMensual)
+    .filter(m => m <= toMonth) // <= mes actual
+    .sort();
+
+  if (meses.length === 0) {
+    // si no hay datos, limpiar chart anterior
+    if (charts.previsionConsumoChart && charts.previsionConsumoChart.destroy) charts.previsionConsumoChart.destroy();
+    return;
+  }
+
+  const consumos = meses.map(m => consumoMensual[m]);
+
+  // 3) Tomamos últimos hasta 6 meses con dato > 0 (si hay)
+  const pares = meses.map((m,i) => ({m, v: consumos[i]}));
+  const paresConDato = pares.filter(p => p.v > 0);
+  const base = (paresConDato.length >= 2 ? paresConDato : pares); // si pocos >0, usa lo que haya
+  const ult = base.slice(-6);
+  const ultimosMeses   = ult.map(p => p.m);
+  const ultimosConsumos= ult.map(p => p.v);
+
+  // 4) Regresión lineal simple sobre índices 0..n-1 (n >= 2)
+  const n = ultimosConsumos.length;
+  let pendiente = 0, intercepto = 0;
+  if (n >= 2) {
+    let sumX=0,sumY=0,sumXY=0,sumX2=0;
+    for (let i=0;i<n;i++){
+      const x=i, y=ultimosConsumos[i];
+      sumX+=x; sumY+=y; sumXY+=x*y; sumX2+=x*x;
     }
+    const denom = n*sumX2 - sumX*sumX;
+    if (denom !== 0) {
+      pendiente = (n*sumXY - sumX*sumY) / denom;
+      intercepto = (sumY - pendiente*sumX)/n;
+    } else {
+      pendiente = 0; intercepto = ultimosConsumos[n-1];
+    }
+  } else {
+    // 0 o 1 punto → mantener plano
+    pendiente = 0;
+    intercepto = ultimosConsumos[0] || 0;
+  }
 
-    charts.previsionConsumoChart = new Chart(ctx, {
-        type: "line",
-        data: {
-            labels: ultimosMeses.concat(mesesProyeccion),
-            datasets: [
-                {
-                    label: "Consumo Real",
-                    data: ultimosConsumos.concat([null,null,null]),
-                    borderColor: "rgba(54, 162, 235, 1)",
-                    backgroundColor: "rgba(54, 162, 235, 0.1)",
-                    borderWidth: 2,
-                    tension: 0.3,
-                    fill: false
-                },
-                {
-                    label: "Proyección",
-                    data: Array(ultimosConsumos.length).fill(null).concat(consumosProyeccion),
-                    borderColor: "rgba(255, 99, 132, 1)",
-                    backgroundColor: "rgba(255, 99, 132, 0.1)",
-                    borderWidth: 2,
-                    borderDash: [5, 5],
-                    tension: 0.3,
-                    fill: false
-                }
-            ]
+  // 5) Construye etiquetas de los próximos 3 meses reales (YYYY-MM)
+  function nextMonthLabel(ym, add) {
+    const [y,m] = ym.split('-').map(Number);
+    const d = new Date(y, m-1+add, 1);
+    const yy = d.getFullYear();
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    return `${yy}-${mm}`;
+  }
+  const lastReal = ultimosMeses[ultimosMeses.length-1];
+  const mesesProy = [1,2,3].map(k => nextMonthLabel(lastReal, k));
+
+  // 6) Valores proyectados (no negativos y suavizados)
+  const consumosProy = [0,1,2].map(i => Math.max(0, Math.round(intercepto + pendiente*(n+i))));
+
+  // 7) Render
+  if (charts.previsionConsumoChart && charts.previsionConsumoChart.destroy) charts.previsionConsumoChart.destroy();
+
+  charts.previsionConsumoChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: ultimosMeses.concat(mesesProy),
+      datasets: [
+        {
+          label: "Consumo Real",
+          data: ultimosConsumos.concat([null,null,null]),
+          borderColor: "rgba(54, 162, 235, 1)",
+          backgroundColor: "rgba(54, 162, 235, 0.1)",
+          borderWidth: 2,
+          tension: 0.3,
+          spanGaps: false,
+          fill: false
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    title: { display: true, text: "Unidades consumidas" }
-                }
-            }
+        {
+          label: "Proyección",
+          data: Array(ultimosConsumos.length).fill(null).concat(consumosProy),
+          borderColor: "rgba(255, 99, 132, 1)",
+          backgroundColor: "rgba(255, 99, 132, 0.1)",
+          borderWidth: 2,
+          borderDash: [5,5],
+          tension: 0.3,
+          spanGaps: true,
+          fill: false
         }
-    });
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { beginAtZero: true, title: { display: true, text: "Unidades consumidas" } },
+        x: { title: { display: true, text: "Mes (YYYY-MM)" } }
+      }
+    }
+  });
 }
+
 
 function createEstacionalidadChart() {
     const ctx = document.getElementById("estacionalidadChart").getContext("2d");
@@ -2051,6 +2157,9 @@ function refreshDashboard() {
 
 document.addEventListener("DOMContentLoaded", function(){
 
+  // tras construir el DOM
+  injectInfoBadges();
+
   document.getElementById("loginForm").addEventListener("submit", function(ev){
     ev.preventDefault();
     const u = document.getElementById("usuario").value.trim().toLowerCase();
@@ -2077,6 +2186,7 @@ document.addEventListener("DOMContentLoaded", function(){
     showLoginScreen();
   }
 });
+
 </script>
 
 </body>

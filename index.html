@@ -5,21 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tablero de Quirófanos - Ministerio de Trabajo</title>
 
-    <!-- Bootstrap y dependencias visuales -->
+    <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
 
-    <!-- Chart.js -->
+    <!-- Chart.js + plugin datalabels -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
-    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
-
-    <!-- DataTables -->
-    <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
     <style>
         :root {
@@ -362,20 +354,6 @@
                         <option value="__ALL__">Todas</option>
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <label for="filtroNombre" class="form-label">Nombre Personal</label>
-                    <select class="form-select" id="filtroNombre">
-                        <option value="__ALL__">Todos</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label for="filtroUsuario" class="form-label">Usuario</label>
-                    <select class="form-select" id="filtroUsuario">
-                        <option value="__ALL__">Todos</option>
-                    </select>
-                </div>
-            </div>
-            <div class="row mt-3">
                 <div class="col-md-3 d-flex align-items-end">
                     <button class="btn btn-secondary w-100" id="btnReset">
                         <i class="bi bi-arrow-clockwise"></i> Limpiar filtros
@@ -526,7 +504,7 @@
                             <div class="card-header">
                                 <div class="title-with-info">
                                     <h5>Descargas por día y farmacia</h5>
-                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Gráfico de líneas que muestra la evolución diaria del número de descargas de kits por farmacia/almacén. Permite identificar picos de actividad, tendencias temporales y diferencias entre ubicaciones, facilitando el análisis de demanda y posibles anomalías en el flujo operativo. Usa zoom y pan para explorar detalles."></i>
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Gráfico de líneas que muestra la evolución diaria del número de descargas de kits por farmacia/almacén. Permite identificar picos de actividad, tendencias temporales y diferencias entre ubicaciones, facilitando el análisis de demanda y posibles anomalías en el flujo operativo."></i>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -779,7 +757,7 @@
                                     <canvas id="previsionConsumoChart"></canvas>
                                 </div>
                                 <div class="chart-note">
-                                    Tendencia y proyección mensual usando suavizado exponencial. Línea punteada indica pronóstico. Usa zoom para detalles.
+                                    Tendencia y proyección mensual usando suavizado exponencial. Línea punteada indica pronóstico.
                                 </div>
                             </div>
                         </div>
@@ -813,7 +791,7 @@
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <div class="title-with-info">
                             <h5>Registros recientes, filtrados</h5>
-                            <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Tabla detallada con los 100 registros más recientes según filtros aplicados, ordenados por timestamp descendente. Incluye todas las variables clave para auditoría y análisis granular; soporta exportación a CSV para informes externos. La tabla es interactiva con búsqueda, ordenación y paginación."></i>
+                            <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Tabla detallada con los 100 registros más recientes según filtros aplicados, ordenados por timestamp descendente. Incluye todas las variables clave para auditoría y análisis granular; soporta exportación a CSV para informes externos."></i>
                         </div>
                         <button class="btn btn-sm btn-outline-light" id="exportData">
                             <i class="bi bi-download"></i> Exportar Datos
@@ -840,7 +818,7 @@
                             </table>
                         </div>
                         <div class="footnote">
-                            Muestra hasta 100 filas más recientes según filtros aplicados. Usa la búsqueda y ordenación para explorar.
+                            Muestra hasta 100 filas más recientes según filtros aplicados.
                         </div>
                     </div>
                 </div>
@@ -870,30 +848,13 @@
                         <div class="card">
                             <div class="card-header">
                                 <div class="title-with-info">
-                                    <h5>Procedimientos por Quirofano y Tipo</h5>
+                                    <h5>Procedimientos por Quirófano y Tipo</h5>
                                     <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Distribución de procedimientos por quirófano y tipo de personal. Útil para segmentar y analizar utilización por instalación y rol."></i>
                                 </div>
                             </div>
                             <div class="card-body">
                                 <div class="chart-container">
                                     <canvas id="segmentQuirofanoTipoChart"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-12">
-                        <div class="card">
-                            <div class="card-header">
-                                <div class="title-with-info">
-                                    <h5>Consumo por Farmacia y Especialidad</h5>
-                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Gráfico stacked de consumo de kits por farmacia y especialidad. Permite segmentar datos para análisis de distribución por ubicación y área médica. Usa zoom para detalles."></i>
-                                </div>
-                            </div>
-                            <div class="card-body">
-                                <div class="chart-container">
-                                    <canvas id="segmentFarmaciaEspecialidadChart"></canvas>
                                 </div>
                             </div>
                         </div>
@@ -929,7 +890,7 @@ const AUTH_MAP = {
 const SHEET_ID   = "13mzYK7HsvwiKyMXDpZJ3d1fLRvkwPYbOKUeedYSUh68";
 const SHEET_NAME = "Registros";
 
-// Estado inicial de sesión pre-logueada (en GitHub Pages siempre false)
+// Estado inicial sesión
 const AUTH_OK_INIT  = false;
 const SESSION_TOKEN = "";
 const INITIAL_USER  = "";
@@ -944,11 +905,9 @@ let currentUser    = null;
 let currentToken   = null;
 
 // ======================================================================
-// Helpers de parseo CSV
+// Helpers CSV
 // ======================================================================
 
-// Parsea CSV en arrays de filas, cada fila = array de celdas.
-// Soporta comillas dobles, comas dentro de comillas, saltos de línea estándar.
 function parseCSV(raw) {
     const rows = [];
     let curRow = [];
@@ -961,11 +920,9 @@ function parseCSV(raw) {
 
         if (inQuotes) {
             if (c === '"' && next === '"') {
-                // comilla escapada ""
                 curVal += '"';
                 i++;
             } else if (c === '"') {
-                // fin de bloque con comillas
                 inQuotes = false;
             } else {
                 curVal += c;
@@ -977,7 +934,7 @@ function parseCSV(raw) {
                 curRow.push(curVal.trim());
                 curVal = "";
             } else if (c === "\r") {
-                // ignorar \r; se maneja en \n
+                // ignore
             } else if (c === "\n") {
                 curRow.push(curVal.trim());
                 rows.push(curRow);
@@ -988,7 +945,6 @@ function parseCSV(raw) {
             }
         }
     }
-    // último valor si no terminó en \n
     if (curVal.length > 0 || inQuotes || curRow.length > 0) {
         curRow.push(curVal.trim());
         rows.push(curRow);
@@ -997,20 +953,15 @@ function parseCSV(raw) {
     return rows;
 }
 
-// Convierte filas CSV (arrays) a objetos usando la primera fila como headers
 function rowsToObjects(rows) {
     if (!rows || rows.length < 2) return [];
-
     const headersRaw = rows[0];
-    // normalizamos headers quitando espacios duplicados
     const headers = headersRaw.map(h => (h || "").trim());
 
     const out = [];
     for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
-        if (row.every(c => c === "")) {
-            continue; // fila vacía
-        }
+        if (row.every(c => c === "")) continue;
         const obj = {};
         for (let j = 0; j < headers.length; j++) {
             obj[headers[j]] = row[j] !== undefined ? row[j] : "";
@@ -1027,11 +978,9 @@ function rowsToObjects(rows) {
 function toISO(dateStr) {
   if (!dateStr) return null;
 
-  // ya viene como yyyy-mm-dd
   const m = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (m) return dateStr;
 
-  // dd/mm/yyyy
   const m2 = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (m2) {
     const dd = m2[1].padStart(2,"0");
@@ -1040,7 +989,6 @@ function toISO(dateStr) {
     return `${yyyy}-${mm}-${dd}`;
   }
 
-  // fallback
   const dObj = new Date(dateStr);
   if (!isNaN(dObj.getTime())) {
     const dd2 = String(dObj.getDate()).padStart(2,"0");
@@ -1067,8 +1015,6 @@ function toNumber(x) {
 
 function parseTS(ts) {
   if (!ts) return null;
-  // Timestamp suele venir "dd/mm/yyyy hh:mm:ss"
-  // Separamos por espacio
   const parts = ts.split(" ");
   const baseISO = toISO(parts[0] || "");
   if (!baseISO) return null;
@@ -1078,7 +1024,7 @@ function parseTS(ts) {
   return d;
 }
 
-// Función para agregar meses a una fecha YYYY-MM
+// YYYY-MM + n meses
 function addMonthsToYYYYMM(yyyyMm, monthsToAdd) {
     const [year, month] = yyyyMm.split('-').map(Number);
     let newMonth = month + monthsToAdd;
@@ -1161,7 +1107,7 @@ function inferEspecialidad(kit) {
 function inferirEspecialidades(data) {
     const especialidades = {};
     data.forEach(r => {
-        const esp = inferEspecialidad(r.Nombre_kit);
+        const esp = r.Especialidad || inferEspecialidad(r.Nombre_kit);
         especialidades[esp] = (especialidades[esp] || 0) + (r.Cantidad_num || 0);
     });
     return especialidades;
@@ -1266,28 +1212,6 @@ function destroyCharts() {
   charts = {};
 }
 
-function getCommonOptions() {
-    return {
-        plugins: {
-            zoom: {
-                zoom: {
-                    wheel: {
-                        enabled: true,
-                    },
-                    pinch: {
-                        enabled: true
-                    },
-                    mode: 'xy',
-                },
-                pan: {
-                    enabled: true,
-                    mode: 'xy',
-                }
-            }
-        }
-    };
-}
-
 function createChartDiaFarmacia() {
   const ctx = document.getElementById("chartDiaFarmacia").getContext("2d");
   const M = {};
@@ -1319,7 +1243,7 @@ function createChartDiaFarmacia() {
     };
   });
 
-  const options = {
+  charts.chartDiaFarmacia = new Chart(ctx, {
     type: "line",
     data: { labels, datasets },
     options: {
@@ -1340,12 +1264,9 @@ function createChartDiaFarmacia() {
       scales: {
         x: { title: { display: true, text: "Fecha" } },
         y: { beginAtZero: true, title: { display: true, text: "Descargas" } }
-      },
-      ...getCommonOptions()
+      }
     }
-  };
-
-  charts.chartDiaFarmacia = new Chart(ctx, options);
+  });
 }
 
 function createTurnoChart() {
@@ -1377,7 +1298,7 @@ function createTurnoChart() {
       maintainAspectRatio: false,
       plugins: {
         datalabels: {
-          color: '#fff',
+          color: '#f8fafc',
           font: { weight: 'bold' },
           formatter: (value, ctx) => {
             let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
@@ -1385,10 +1306,8 @@ function createTurnoChart() {
             return percentage;
           }
         }
-      },
-      ...getCommonOptions()
-    },
-    plugins: [ChartDataLabels]
+      }
+    }
   });
 }
 
@@ -1418,7 +1337,7 @@ function createTipoChart() {
       maintainAspectRatio: false,
       plugins: {
         datalabels: {
-          color: '#fff',
+          color: '#f8fafc',
           font: { weight: 'bold' },
           formatter: (value, ctx) => {
             let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
@@ -1426,10 +1345,8 @@ function createTipoChart() {
             return percentage;
           }
         }
-      },
-      ...getCommonOptions()
-    },
-    plugins: [ChartDataLabels]
+      }
+    }
   });
 }
 
@@ -1443,7 +1360,7 @@ function createTopAnestesiologosChart() {
       if (r.Nombre) {
         anestData[r.Nombre] = (anestData[r.Nombre] || 0) + 1;
       }
-    });
+  });
 
   const top = Object.entries(anestData)
     .sort(function(a,b){ return b[1] - a[1]; })
@@ -1452,33 +1369,31 @@ function createTopAnestesiologosChart() {
   charts.topAnestesiologosChart = new Chart(ctx, {
     type: "bar",
     data: {
-      labels: top.map(function(x){ return x[0]; }),
-      datasets: [{
-        label: "Registros",
-        data: top.map(function(x){ return x[1]; }),
-        backgroundColor: "rgba(54, 162, 235, 0.7)",
-        borderColor:   "rgba(54, 162, 235, 1)",
-        borderWidth: 1
-      }]
+        labels: top.map(function(x){ return x[0]; }),
+        datasets: [{
+            label: "Registros",
+            data: top.map(function(x){ return x[1]; }),
+            backgroundColor: "rgba(54, 162, 235, 0.7)",
+            borderColor:   "rgba(54, 162, 235, 1)",
+            borderWidth: 1
+        }]
     },
     options: {
-      indexAxis: "y",
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: { beginAtZero: true }
-      },
-      plugins: {
-        datalabels: {
-          anchor: 'end',
-          align: 'end',
-          color: var(--text-main),
-          font: { weight: 'bold' }
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            x: { beginAtZero: true }
+        },
+        plugins: {
+            datalabels: {
+                anchor: 'end',
+                align: 'end',
+                color: '#f8fafc',
+                font: { weight: 'bold' }
+            }
         }
-      },
-      ...getCommonOptions()
-    },
-    plugins: [ChartDataLabels]
+    }
   });
 }
 
@@ -1501,33 +1416,31 @@ function createTopCirculantesChart() {
   charts.topCirculantesChart = new Chart(ctx, {
     type: "bar",
     data: {
-      labels: top.map(function(x){ return x[0]; }),
-      datasets: [{
-        label: "Registros",
-        data: top.map(function(x){ return x[1]; }),
-        backgroundColor: "rgba(75, 192, 192, 0.7)",
-        borderColor:   "rgba(75, 192, 192, 1)",
-        borderWidth: 1
-      }]
+        labels: top.map(function(x){ return x[0]; }),
+        datasets: [{
+            label: "Registros",
+            data: top.map(function(x){ return x[1]; }),
+            backgroundColor: "rgba(75, 192, 192, 0.7)",
+            borderColor:   "rgba(75, 192, 192, 1)",
+            borderWidth: 1
+        }]
     },
     options: {
-      indexAxis: "y",
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: { beginAtZero: true }
-      },
-      plugins: {
-        datalabels: {
-          anchor: 'end',
-          align: 'end',
-          color: var(--text-main),
-          font: { weight: 'bold' }
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            x: { beginAtZero: true }
+        },
+        plugins: {
+            datalabels: {
+                anchor: 'end',
+                align: 'end',
+                color: '#f8fafc',
+                font: { weight: 'bold' }
+            }
         }
-      },
-      ...getCommonOptions()
-    },
-    plugins: [ChartDataLabels]
+    }
   });
 }
 
@@ -1581,8 +1494,7 @@ function createPersonalQuirfanoChart() {
         datalabels: {
           display: false
         }
-      },
-      ...getCommonOptions()
+      }
     }
   });
 }
@@ -1624,13 +1536,11 @@ function createTopKitsChart() {
         datalabels: {
           anchor: 'end',
           align: 'end',
-          color: var(--text-main),
+          color: '#f8fafc',
           font: { weight: 'bold' }
         }
-      },
-      ...getCommonOptions()
-    },
-    plugins: [ChartDataLabels]
+      }
+    }
   });
 }
 
@@ -1652,14 +1562,14 @@ function createKitsCantidadChart() {
           "rgba(153, 102, 255, 0.7)",
           "rgba(255, 159, 64, 0.7)"
         ]
-      }]}
-    ,
+      }]
+    },
     options:{
       responsive:true,
       maintainAspectRatio:false,
       plugins: {
         datalabels: {
-          color: '#fff',
+          color: '#f8fafc',
           font: { weight: 'bold' },
           formatter: (value, ctx) => {
             let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
@@ -1667,10 +1577,8 @@ function createKitsCantidadChart() {
             return percentage;
           }
         }
-      },
-      ...getCommonOptions()
-    },
-    plugins: [ChartDataLabels]
+      }
+    }
   });
 }
 
@@ -1705,13 +1613,11 @@ function createKitsQuirfanoChart() {
         datalabels: {
           anchor: 'end',
           align: 'end',
-          color: var(--text-main),
+          color: '#f8fafc',
           font: { weight: 'bold' }
         }
-      },
-      ...getCommonOptions()
-    },
-    plugins: [ChartDataLabels]
+      }
+    }
   });
 }
 
@@ -1762,13 +1668,11 @@ function createRotacionQuirfanosChart() {
                 datalabels: {
                     anchor: 'end',
                     align: 'end',
-                    color: var(--text-main),
+                    color: '#f8fafc',
                     font: { weight: 'bold' }
                 }
-            },
-            ...getCommonOptions()
-        },
-        plugins: [ChartDataLabels]
+            }
+        }
     });
 }
 
@@ -1824,13 +1728,11 @@ function createEficienciaPersonalChart() {
                 datalabels: {
                     anchor: 'end',
                     align: 'end',
-                    color: var(--text-main),
+                    color: '#f8fafc',
                     font: { weight: 'bold' }
                 }
-            },
-            ...getCommonOptions()
-        },
-        plugins: [ChartDataLabels]
+            }
+        }
     });
 }
 
@@ -1867,13 +1769,11 @@ function createPatronesConsumoChart() {
                 datalabels: {
                     anchor: 'end',
                     align: 'end',
-                    color: var(--text-main),
+                    color: '#f8fafc',
                     font: { weight: 'bold' }
                 }
-            },
-            ...getCommonOptions()
-        },
-        plugins: [ChartDataLabels]
+            }
+        }
     });
 }
 
@@ -1942,23 +1842,22 @@ function createCurvaABCChart() {
                 datalabels: {
                     anchor: 'end',
                     align: 'end',
-                    color: var(--text-main),
+                    color: '#f8fafc',
                     font: { weight: 'bold' }
                 }
-            },
-            ...getCommonOptions()
-        },
-        plugins: [ChartDataLabels]
+            }
+        }
     });
 }
 
 function createPrevisionConsumoChart() {
     const ctx = document.getElementById("previsionConsumoChart").getContext("2d");
 
+    // sumar consumo mensual total
     const consumoMensual = {};
     filteredData.forEach(r => {
         if (r.Fecha_iso) {
-            const mes = r.Fecha_iso.substring(0, 7);
+            const mes = r.Fecha_iso.substring(0, 7); // YYYY-MM
             consumoMensual[mes] = (consumoMensual[mes] || 0) + (r.Cantidad_num || 0);
         }
     });
@@ -1966,26 +1865,33 @@ function createPrevisionConsumoChart() {
     const meses = Object.keys(consumoMensual).sort();
     const consumos = meses.map(function(mes){ return consumoMensual[mes]; });
 
+    // tomamos últimos 6 meses reales
     const ultimosMeses = meses.slice(-6);
     const ultimosConsumos = consumos.slice(-6);
 
-    // Suavizado exponencial avanzado (alpha = 0.3)
+    // suavizado exponencial simple alpha=0.3
     const alpha = 0.3;
-    let smoothed = [ultimosConsumos[0] || 0];
-    for (let i = 1; i < ultimosConsumos.length; i++) {
-        smoothed[i] = alpha * ultimosConsumos[i] + (1 - alpha) * smoothed[i-1];
+    const smoothed = [];
+    if (ultimosConsumos.length > 0) {
+        smoothed[0] = ultimosConsumos[0];
+        for (let i = 1; i < ultimosConsumos.length; i++) {
+            smoothed[i] = alpha * ultimosConsumos[i] + (1 - alpha) * smoothed[i-1];
+        }
     }
 
-    // Proyección con suavizado
-    let lastSmoothed = smoothed[smoothed.length - 1];
+    // proyección a 3 meses: mantenemos el último valor suavizado como baseline
     const consumosProyeccion = [];
+    let lastSmoothed = smoothed.length ? smoothed[smoothed.length - 1] : 0;
     for (let i = 0; i < 3; i++) {
-        lastSmoothed = alpha * lastSmoothed + (1 - alpha) * lastSmoothed; // Proyección constante con suavizado
         consumosProyeccion.push(Math.max(0, Math.round(lastSmoothed)));
     }
 
+    // generar etiquetas futuras sumando meses
     const mesesProyeccion = [];
-    let lastMes = ultimosMeses[ultimosMeses.length - 1] || '2025-10'; // Usando fecha actual aproximada
+    let lastMes = ultimosMeses[ultimosMeses.length - 1] || (() => {
+        const now = new Date();
+        return now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0");
+    })();
     for (let i = 1; i <= 3; i++) {
         lastMes = addMonthsToYYYYMM(lastMes, 1);
         mesesProyeccion.push(lastMes);
@@ -2039,8 +1945,7 @@ function createPrevisionConsumoChart() {
                 datalabels: {
                     display: false
                 }
-            },
-            ...getCommonOptions()
+            }
         }
     });
 }
@@ -2118,13 +2023,12 @@ function createEstacionalidadChart() {
                 datalabels: {
                     display: false
                 }
-            },
-            ...getCommonOptions()
+            }
         }
     });
 }
 
-// Nuevos gráficos para segmentación
+// Segmentación
 function createSegmentEspecialidadTurnoChart() {
     const ctx = document.getElementById("segmentEspecialidadTurnoChart").getContext("2d");
     const M = {};
@@ -2144,7 +2048,8 @@ function createSegmentEspecialidadTurnoChart() {
             data: esps.map(e => M[e][t] || 0),
             backgroundColor: t.includes("Mañana") ? "rgba(255, 206, 86, 0.7)" :
                              t.includes("Tarde") ? "rgba(54, 162, 235, 0.7)" :
-                             t.includes("Noche") ? "rgba(153, 102, 255, 0.7)" : "rgba(201, 203, 207, 0.7)",
+                             t.includes("Noche") ? "rgba(153, 102, 255, 0.7)" :
+                             "rgba(201, 203, 207, 0.7)",
             stack: 'stack'
         };
     });
@@ -2162,7 +2067,9 @@ function createSegmentEspecialidadTurnoChart() {
                 y: { stacked: true, beginAtZero: true },
                 x: { stacked: true }
             },
-            ...getCommonOptions()
+            plugins: {
+                datalabels: { display: false }
+            }
         }
     });
 }
@@ -2202,477 +2109,60 @@ function createSegmentQuirofanoTipoChart() {
                 y: { stacked: true, beginAtZero: true },
                 x: { stacked: true }
             },
-            ...getCommonOptions()
+                        plugins: {
+                datalabels: {
+                    display: false
+                }
+            }
         }
     });
 }
 
-function createSegmentFarmaciaEspecialidadChart() {
-    const ctx = document.getElementById("segmentFarmaciaEspecialidadChart").getContext("2d");
+function createSegmentQuirofanoTipoChart() {
+    const ctx = document.getElementById("segmentQuirofanoTipoChart").getContext("2d");
     const M = {};
     filteredData.forEach(r => {
-        const farm = r.Farmacia || "Sin farmacia";
-        const esp = inferEspecialidad(r.Nombre_kit);
-        if (!M[farm]) M[farm] = {};
-        M[farm][esp] = (M[farm][esp] || 0) + (r.Cantidad_num || 0);
+        const q = r.Quirofano || "Sin asignar";
+        const tp = r.Tipo || "Sin tipo";
+        if (!M[q]) M[q] = {};
+        M[q][tp] = (M[q][tp] || 0) + 1;
     });
 
-    const farms = Object.keys(M).sort();
-    const esps = [...new Set(farms.flatMap(f => Object.keys(M[f])))].sort();
+    const qs = Object.keys(M).sort();
+    const tipos = [...new Set(qs.flatMap(q => Object.keys(M[q])))].sort();
 
-    const colors = [
-        "rgba(255, 99, 132, 0.7)",
-        "rgba(54, 162, 235, 0.7)",
-        "rgba(255, 206, 86, 0.7)",
-        "rgba(75, 192, 192, 0.7)",
-        "rgba(153, 102, 255, 0.7)",
-        "rgba(255, 159, 64, 0.7)",
-        "rgba(201, 203, 207, 0.7)"
-    ];
-
-    const datasets = esps.map((e, idx) => {
+    const datasets = tipos.map(tp => {
         return {
-            label: e,
-            data: farms.map(f => M[f][e] || 0),
-            backgroundColor: colors[idx % colors.length],
+            label: tp,
+            data: qs.map(q => M[q][tp] || 0),
+            backgroundColor:
+                tp === "Anestesiólogo"
+                    ? "rgba(153, 102, 255, 0.7)"
+                    : "rgba(255, 159, 64, 0.7)",
             stack: 'stack'
         };
     });
 
-    charts.segmentFarmaciaEspecialidadChart = new Chart(ctx, {
+    charts.segmentQuirofanoTipoChart = new Chart(ctx, {
         type: "bar",
         data: {
-            labels: farms,
+            labels: qs,
             datasets: datasets
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                y: { stacked: true, beginAtZero: true, title: { display: true, text: "Unidades consumidas" } },
-                x: { stacked: true, title: { display: true, text: "Farmacia" } }
+                y: { stacked: true, beginAtZero: true },
+                x: { stacked: true }
             },
-            ...getCommonOptions()
+            plugins: {
+                datalabels: {
+                    display: false
+                }
+            }
         }
     });
 }
 
-// ======================================================================
-// Tabla
-// ======================================================================
-
-function updateDataTable() {
-  const tb = document.getElementById("dataTableBody");
-  tb.innerHTML = "";
-
-  const sorted = filteredData.slice().sort(function(a,b){
-    return (b.Timestamp_obj||0) - (a.Timestamp_obj||0);
-  });
-
-  const top100 = sorted.slice(0,100);
-  top100.forEach(r => {
-    const tr = document.createElement("tr");
-    const cols = [
-      r.Fecha,
-      r.Farmacia,
-      r.Turno,
-      r.Tipo,
-      r.Nombre,
-      r.Quirofano,
-      r.Nombre_kit,
-      r.Cantidad,
-      r.Usuario,
-      r.Timestamp
-    ];
-    cols.forEach(function(val, idx){
-      const td = document.createElement("td");
-      td.textContent = val || "";
-      if (idx === 7) {
-        td.style.textAlign = "right";
-      }
-      tr.appendChild(td);
-    });
-    tb.appendChild(tr);
-  });
-
-  if ($.fn.DataTable.isDataTable('#dataTable')) {
-    $('#dataTable').DataTable().destroy();
-  }
-  $('#dataTable').DataTable({
-    paging: true,
-    searching: true,
-    ordering: true,
-    info: true,
-    lengthChange: false,
-    pageLength: 10,
-    language: {
-      search: "Buscar:",
-      paginate: {
-        first: "Primero",
-        last: "Último",
-        next: "Siguiente",
-        previous: "Anterior"
-      },
-      info: "Mostrando _START_ a _END_ de _TOTAL_ entradas"
-    }
-  });
-}
-
-// ======================================================================
-// Filtros
-// ======================================================================
-
-function populateFilters() {
-  populateSelect("filtroFarmacia", r => r.Farmacia);
-  populateSelect("filtroTurno", r => r.Turno);
-  populateSelect("filtroTipo", r => r.Tipo);
-  populateSelect("filtroQuirofano", r => r.Quirofano);
-  populateSelect("filtroKit", r => r.Nombre_kit);
-  populateSelect("filtroNombre", r => r.Nombre);
-  populateSelect("filtroUsuario", r => r.Usuario);
-
-  // Para especialidad
-  const selEsp = document.getElementById("filtroEspecialidad");
-  while (selEsp.options.length > 1) {
-    selEsp.remove(1);
-  }
-  const esps = new Set(originalData.map(r => inferEspecialidad(r.Nombre_kit)));
-  Array.from(esps).sort().forEach(e => {
-    const opt = document.createElement("option");
-    opt.value = e;
-    opt.textContent = e;
-    selEsp.appendChild(opt);
-  });
-}
-
-function populateSelect(id, extractor) {
-  const sel = document.getElementById(id);
-  while (sel.options.length > 1) {
-    sel.remove(1);
-  }
-  const values = new Set(originalData.map(extractor).filter(v => v));
-  Array.from(values).sort().forEach(v => {
-    const opt = document.createElement("option");
-    opt.value = v;
-    opt.textContent = v;
-    sel.appendChild(opt);
-  });
-}
-
-function applyFilters() {
-  const fd = document.getElementById("filtroDesde").value || null;
-  const fh = document.getElementById("filtroHasta").value || null;
-  const ff = document.getElementById("filtroFarmacia").value || "__ALL__";
-  const ft = document.getElementById("filtroTurno").value || "__ALL__";
-  const fti = document.getElementById("filtroTipo").value || "__ALL__";
-  const fq = document.getElementById("filtroQuirofano").value || "__ALL__";
-  const fk = document.getElementById("filtroKit").value || "__ALL__";
-  const fe = document.getElementById("filtroEspecialidad").value || "__ALL__";
-  const fn = document.getElementById("filtroNombre").value || "__ALL__";
-  const fu = document.getElementById("filtroUsuario").value || "__ALL__";
-
-  filteredData = originalData.filter(function(r){
-    if (ff !== "__ALL__" && r.Farmacia !== ff) return false;
-    if (ft !== "__ALL__" && r.Turno !== ft) return false;
-    if (fti !== "__ALL__" && r.Tipo !== fti) return false;
-    if (fq !== "__ALL__" && r.Quirofano !== fq) return false;
-    if (fk !== "__ALL__" && r.Nombre_kit !== fk) return false;
-    if (fe !== "__ALL__" && inferEspecialidad(r.Nombre_kit) !== fe) return false;
-    if (fn !== "__ALL__" && r.Nombre !== fn) return false;
-    if (fu !== "__ALL__" && r.Usuario !== fu) return false;
-    if (fd && r.Fecha_iso && r.Fecha_iso < fd) return false;
-    if (fh && r.Fecha_iso && r.Fecha_iso > fh) return false;
-    return true;
-  });
-
-  refreshDashboard();
-}
-
-function resetFilters() {
-  document.getElementById("filtroDesde").value    = "";
-  document.getElementById("filtroHasta").value    = "";
-  document.getElementById("filtroFarmacia").value = "__ALL__";
-  document.getElementById("filtroTurno").value = "__ALL__";
-  document.getElementById("filtroTipo").value = "__ALL__";
-  document.getElementById("filtroQuirofano").value = "__ALL__";
-  document.getElementById("filtroKit").value = "__ALL__";
-  document.getElementById("filtroEspecialidad").value = "__ALL__";
-  document.getElementById("filtroNombre").value = "__ALL__";
-  document.getElementById("filtroUsuario").value = "__ALL__";
-
-  filteredData = originalData.slice();
-  refreshDashboard();
-}
-
-// ======================================================================
-// Exportar datos filtrados
-// ======================================================================
-
-function exportData() {
-  if (!filteredData.length) {
-    alert("No hay datos para exportar.");
-    return;
-  }
-  const headers = Object.keys(filteredData[0]);
-  const csvLines = [];
-  csvLines.push(headers.join(","));
-  filteredData.forEach(function(row){
-    const line = headers.map(function(h){
-      const v = row[h] == null ? "" : String(row[h]);
-      return "\"" + v.replace(/"/g,'""') + "\"";
-    }).join(",");
-    csvLines.push(line);
-  });
-  const blob = new Blob([csvLines.join("\n")], {type:"text/csv"});
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
-  a.href     = url;
-  a.download = "datos_quirofanos.csv";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-// ======================================================================
-// Calidad de datos
-// ======================================================================
-
-function checkDataQuality(data) {
-    const total = data.length;
-    if (total === 0) return null;
-    
-    const issues = [];
-    const sinQuirofano = data.filter(function(r){
-        return !r.Quirofano || r.Quirofano === "";
-    }).length;
-    if (sinQuirofano > 0) {
-        issues.push(
-            sinQuirofano + " registros sin quirófano asignado (" +
-            (sinQuirofano/total*100).toFixed(1) + "%)"
-        );
-    }
-    const sinKit = data.filter(function(r){
-        return !r.Nombre_kit || r.Nombre_kit === "";
-    }).length;
-    if (sinKit > 0) {
-        issues.push(
-            sinKit + " registros sin kit asignado (" +
-            (sinKit/total*100).toFixed(1) + "%)"
-        );
-    }
-    return issues.length > 0 ? issues : null;
-}
-
-function mostrarAlertasCalidad(issues) {
-    const alertDiv = document.getElementById("dataQualityAlert");
-    const messageDiv = document.getElementById("dataQualityMessage");
-    
-    if (issues && issues.length > 0) {
-        messageDiv.innerHTML =
-            "<strong>Se detectaron las siguientes situaciones:</strong><br>" +
-            issues.join("<br>");
-        alertDiv.style.display = "block";
-    } else {
-        alertDiv.style.display = "none";
-    }
-}
-
-// ======================================================================
-// Carga real desde Google Sheets (CSV público)
-// ======================================================================
-
-async function loadSheetData() {
-    showLoading();
-    try {
-        // URL CSV pública de la hoja específica
-        // Nota: SHEET_NAME debe coincidir EXACTO con el nombre de la pestaña "Registros"
-        const csvURL =
-          "https://docs.google.com/spreadsheets/d/" +
-          encodeURIComponent(SHEET_ID) +
-          "/gviz/tq?tqx=out:csv&sheet=" +
-          encodeURIComponent(SHEET_NAME);
-
-        const resp = await fetch(csvURL);
-        if (!resp.ok) {
-            throw new Error("No se pudo leer la hoja (resp " + resp.status + ")");
-        }
-
-        const rawCSV = await resp.text();
-
-        // 1) Parsear CSV en filas
-        const rows = parseCSV(rawCSV);
-        // 2) Convertir filas en objetos clave-valor
-        const sheetObjects = rowsToObjects(rows);
-
-        // 3) Normalizar al formato interno esperado
-        originalData = sheetObjects.map(function(r){
-            // nombres esperados según tu sheet:
-            // Fecha, Farmacia, Turno, Tipo, Nombre,
-            // Quirófano Nro, Codigo_kit, Nombre_kit,
-            // Cantidad, Observaciones, Usuario, Timestamp
-
-            const Fecha         = r["Fecha"] || r["fecha"] || "";
-            const Fecha_iso     = toISO(Fecha);
-            const Cantidad_raw  = r["Cantidad"] || r["cantidad"] || "";
-            const Cantidad_num  = toNumber(Cantidad_raw);
-            const Timestamp_raw = r["Timestamp"] || r["timestamp"] || "";
-            const Timestamp_obj = parseTS(Timestamp_raw);
-
-            const Qraw = r["Quirófano Nro"] || r["Quirofano Nro"] || r["Quirófano"] || r["Quirofano"] || "";
-
-            return {
-                Fecha:        Fecha,
-                Fecha_iso:    Fecha_iso,
-                Farmacia:     r["Farmacia"] || r["farmacia"] || "",
-                Turno:        r["Turno"] || r["turno"] || "",
-                Tipo:         r["Tipo"] || r["tipo"] || "",
-                Nombre:       r["Nombre"] || r["nombre"] || "",
-                Quirofano:    normalizeQuirfano(Qraw),
-                Nombre_kit:   r["Nombre_kit"] || r["Nombre kit"] || r["Nombre kit "] || r["nombre_kit"] || "",
-                Cantidad:     Cantidad_raw,
-                Cantidad_num: Cantidad_num,
-                Observaciones: r["Observaciones"] || r["observaciones"] || "",
-                Usuario:      r["Usuario"] || r["usuario"] || "",
-                Timestamp:    Timestamp_raw,
-                Timestamp_obj: Timestamp_obj
-            };
-        });
-
-        filteredData = originalData.slice();
-
-        populateFilters();
-        refreshDashboard();
-    } catch (err) {
-        console.error("Error cargando hoja:", err);
-        alert("No se pudo cargar datos reales desde la hoja Registros. ¿Está compartida como 'cualquiera con el enlace - lector'? Se usarán 0 filas.");
-        originalData = [];
-        filteredData = [];
-        populateFilters();
-        refreshDashboard();
-    } finally {
-        hideLoading();
-    }
-}
-
-// ======================================================================
-// Login local (sin backend server)
-// ======================================================================
-
-async function doLogin(username, password) {
-  showLoading();
-  try {
-    const expected = AUTH_MAP[username];
-    if (!expected || expected !== password) {
-        hideLoading();
-        showLoginError("Credenciales inválidas");
-        return;
-    }
-
-    currentUser  = username;
-    currentToken = "token_local_" + Date.now();
-
-    document.getElementById("activeUser").textContent = currentUser;
-    showDashboardScreen();
-
-    // Cargar datos reales desde la hoja
-    await loadSheetData();
-
-  } catch (err) {
-    hideLoading();
-    console.error(err);
-    showLoginError("Fallo interno");
-  }
-}
-
-// Cerrar sesión
-function doLogout() {
-  currentUser  = null;
-  currentToken = null;
-  showLoginScreen();
-}
-
-// ======================================================================
-// Render principal
-// ======================================================================
-
-function refreshDashboard() {
-  const k = calcKPIs(filteredData);
-  renderKPIs(k);
-
-  const kEspecializados = calcKPIsEspecializados(filteredData);
-  renderKPIsEspecializados(kEspecializados);
-
-  destroyCharts();
-  createChartDiaFarmacia();
-  createTurnoChart();
-  createTipoChart();
-  createTopAnestesiologosChart();
-  createTopCirculantesChart();
-  createPersonalQuirfanoChart();
-  createTopKitsChart();
-  createKitsCantidadChart();
-  createKitsQuirfanoChart();
-  createRotacionQuirfanosChart();
-  createEficienciaPersonalChart();
-  createPatronesConsumoChart();
-  createCurvaABCChart();
-  createPrevisionConsumoChart();
-  createEstacionalidadChart();
-  createSegmentEspecialidadTurnoChart();
-  createSegmentQuirofanoTipoChart();
-  createSegmentFarmaciaEspecialidadChart();
-
-  updateDataTable();
-
-  const issues = checkDataQuality(filteredData);
-  mostrarAlertasCalidad(issues);
-}
-
-// ======================================================================
-// Init al cargar DOM
-// ======================================================================
-
-document.addEventListener("DOMContentLoaded", function(){
-
-  document.getElementById("loginForm").addEventListener("submit", function(ev){
-    ev.preventDefault();
-    const u = document.getElementById("usuario").value.trim().toLowerCase();
-    const p = document.getElementById("codigo").value.trim();
-    doLogin(u, p);
-  });
-
-  document.getElementById("filtroDesde").addEventListener("change", applyFilters);
-  document.getElementById("filtroHasta").addEventListener("change", applyFilters);
-  document.getElementById("filtroFarmacia").addEventListener("change", applyFilters);
-  document.getElementById("filtroTurno").addEventListener("change", applyFilters);
-  document.getElementById("filtroTipo").addEventListener("change", applyFilters);
-  document.getElementById("filtroQuirofano").addEventListener("change", applyFilters);
-  document.getElementById("filtroKit").addEventListener("change", applyFilters);
-  document.getElementById("filtroEspecialidad").addEventListener("change", applyFilters);
-  document.getElementById("filtroNombre").addEventListener("change", applyFilters);
-  document.getElementById("filtroUsuario").addEventListener("change", applyFilters);
-  document.getElementById("btnReset").addEventListener("click", resetFilters);
-  document.getElementById("exportData").addEventListener("click", exportData);
-  document.getElementById("logoutBtn").addEventListener("click", doLogout);
-
-  // Inicializar tooltips de Bootstrap
-  const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-  const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
-
-  // flujo inicial (normalmente no hay sesión previa en GitHub Pages)
-  if (AUTH_OK_INIT && SESSION_TOKEN) {
-    currentUser  = INITIAL_USER || "";
-    currentToken = SESSION_TOKEN || "";
-    document.getElementById("activeUser").textContent = currentUser;
-    showDashboardScreen();
-    // Cargamos la hoja directamente si ya está "logueado"
-    loadSheetData();
-  } else {
-    showLoginScreen();
-  }
-});
-</script>
-
-</body>
 </html>

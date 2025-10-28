@@ -710,24 +710,28 @@
 
 <script>
 // ======================================================================
-// Autenticación local
+// CONFIG
 // ======================================================================
 
-// Mapa de credenciales válidas
+// credenciales válidas
 const AUTH_MAP = {
   "dbmeza":  "3704196",
   "clawes":  "524307",
   "memarti": "4187108",
-    "dbazan": "1943078"
+  "dbazan":  "1943078"
 };
 
-// Estado de sesión inicial
+// sesión inicial (sin login automático)
 const AUTH_OK_INIT  = false;
 const SESSION_TOKEN = "";
 const INITIAL_USER  = "";
 
+// ID del Spreadsheet y nombre de la hoja
+const SHEET_ID   = "13mzYK7HsvwiKyMXDpZJ3d1fLRvkwPYbOKUeedYSUh68";
+const SHEET_NAME = "Registros";
+
 // ======================================================================
-// Estado global en el cliente
+// Estado global
 // ======================================================================
 let originalData = [];
 let filteredData = [];
@@ -736,7 +740,7 @@ let currentUser = null;
 let currentToken = null;
 
 // ======================================================================
-// Datos simulados de quirófanos (reemplazar cuando se integre backend real)
+// DEMO_DATA (fallback si falla la hoja real)
 // ======================================================================
 const DEMO_DATA = [
     {
@@ -846,9 +850,8 @@ const DEMO_DATA = [
 function toISO(dateStr) {
   if (!dateStr) return null;
   const m = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (m) {
-    return dateStr;
-  }
+  if (m) return dateStr;
+
   const m2 = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   if (m2) {
     const dd = m2[1], mm = m2[2], yyyy = m2[3];
@@ -924,9 +927,7 @@ function calcKPIs(data) {
   const farmSet = new Set(data.map(r => r.Farmacia));
   const nFarm   = farmSet.size;
 
-  const diasSet = new Set(
-    data.map(r => r.Fecha_iso).filter(d => !!d)
-  );
+  const diasSet = new Set(data.map(r => r.Fecha_iso).filter(d => !!d));
   const nDias   = diasSet.size || 1;
   const prom    = total / nDias;
 
@@ -981,8 +982,8 @@ function calcKPIsEspecializados(data) {
             turnoCount[r.Turno] = (turnoCount[r.Turno] || 0) + 1;
         }
     });
-    const turnoMasActivo = Object.keys(turnoCount).length > 0 ?
-        Object.keys(turnoCount).reduce((a, b) =>
+    const turnoMasActivo = Object.keys(turnoCount).length > 0
+        ? Object.keys(turnoCount).reduce((a, b) =>
             turnoCount[a] > turnoCount[b] ? a : b
         )
         : "-";
@@ -995,15 +996,15 @@ function calcKPIsEspecializados(data) {
     const kitsPorProc = total > 0 ? (unidades / total).toFixed(1) : "0.0";
     
     const especialidades = inferirEspecialidades(data);
-    const especialidadPrincipal = Object.keys(especialidades).length > 0 ?
-        Object.keys(especialidades).reduce((a, b) =>
+    const especialidadPrincipal = Object.keys(especialidades).length > 0
+        ? Object.keys(especialidades).reduce((a, b) =>
             especialidades[a] > especialidades[b] ? a : b
         )
         : "-";
     
     const quirfanosUnicos = [...new Set(data.map(r => r.Quirofano).filter(q => q))];
-    const eficiencia = quirfanosUnicos.length > 0 ?
-        (total / (quirfanosUnicos.length * nDias)).toFixed(1)
+    const eficiencia = quirfanosUnicos.length > 0
+        ? (total / (quirfanosUnicos.length * nDias)).toFixed(1)
         : "0.0";
 
     return { 
@@ -1399,7 +1400,7 @@ function createKitsQuirfanoChart() {
   });
 }
 
-// Eficiencia operativa
+// eficiencia operativa
 
 function createRotacionQuirfanosChart() {
     const ctx = document.getElementById("rotacionQuirfanosChart").getContext("2d");
@@ -1531,7 +1532,7 @@ function createPatronesConsumoChart() {
     });
 }
 
-// Stock
+// stock
 
 function createCurvaABCChart() {
     const ctx = document.getElementById("curvaABCChart").getContext("2d");
@@ -1913,12 +1914,116 @@ function mostrarAlertasCalidad(issues) {
 }
 
 // ======================================================================
-// Carga de datos local (sin backend)
+// Carga desde Google Sheets
 // ======================================================================
+//
+// Vamos a usar la API "gviz/tq?sheet=Registros&tqx=out:json"
+// Esto devuelve algo como:
+//   google.visualization.Query.setResponse({...});
+//
+// Pasos:
+// 1. descargamos el texto
+// 2. extraemos el {...}
+// 3. armamos objetos por fila con los encabezados reales de la hoja
+// 4. normalizamos igual que hacíamos con DEMO_DATA
+//
+// Requisitos:
+// - La hoja debe estar compartida como "cualquier persona con el enlace: lector"
+//   (solo lectura). Si no, el fetch va a fallar y vamos a caer en DEMO_DATA.
+//
 
-function loadLocalData() {
+async function loadSheetData() {
     showLoading();
 
+    const url =
+      "https://docs.google.com/spreadsheets/d/" +
+      SHEET_ID +
+      "/gviz/tq?sheet=" +
+      encodeURIComponent(SHEET_NAME) +
+      "&tqx=out:json";
+
+    try {
+        const resp = await fetch(url);
+        const text = await resp.text();
+
+        // extraer el JSON puro de dentro de setResponse(...)
+        // ejemplo: google.visualization.Query.setResponse(<AQUÍ>);
+        const match = text.match(/setResponse\\(([\s\S]+)\\);?/);
+        if (!match) {
+            throw new Error("Formato inesperado de respuesta de Google Sheets");
+        }
+        const payload = JSON.parse(match[1]);
+
+        // headers
+        const cols = payload.table.cols.map(c => c.label || c.id || "");
+        // filas
+        const rows = payload.table.rows || [];
+
+        // transformamos cada fila a objeto {header: value}
+        const rawRows = rows.map(r => {
+            const obj = {};
+            r.c.forEach((cell, idx) => {
+                const header = cols[idx] || ("col" + idx);
+                obj[header] = cell ? cell.v : "";
+            });
+            return obj;
+        });
+
+        // ahora normalizamos al formato interno
+        originalData = rawRows.map(function(r){
+            // asumimos que la hoja tiene estas columnas exactas:
+            // Fecha, Farmacia, Turno, Tipo, Nombre,
+            // Quirófano Nro, Codigo_kit, Nombre_kit,
+            // Cantidad, Observaciones, Usuario, Timestamp
+
+            const Fecha        = r["Fecha"] || "";
+            const Farmacia     = r["Farmacia"] || "";
+            const Turno        = r["Turno"] || "";
+            const Tipo         = r["Tipo"] || "";
+            const Nombre       = r["Nombre"] || "";
+            const QuirofRaw    = r["Quirófano Nro"] || r["Quir\u00f3fano Nro"] || r["Quirofano Nro"] || "";
+            const Nombre_kit   = r["Nombre_kit"] || r["Nombre kit"] || r["Kit"] || "";
+            const Cantidad     = r["Cantidad"] || "";
+            const Observaciones= r["Observaciones"] || "";
+            const Usuario      = r["Usuario"] || "";
+            const Timestamp    = r["Timestamp"] || r["Marca de tiempo"] || r["Marca de tiempo "] || "";
+
+            const Fecha_iso     = toISO(Fecha);
+            const Cantidad_num  = toNumber(Cantidad);
+            const Timestamp_obj = parseTS(Timestamp);
+
+            return {
+                Fecha:        Fecha,
+                Fecha_iso:    Fecha_iso,
+                Farmacia:     Farmacia,
+                Turno:        Turno,
+                Tipo:         Tipo,
+                Nombre:       Nombre,
+                Quirofano:    normalizeQuirfano(QuirofRaw),
+                Nombre_kit:   Nombre_kit,
+                Cantidad:     Cantidad,
+                Cantidad_num: Cantidad_num,
+                Observaciones: Observaciones,
+                Usuario:      Usuario,
+                Timestamp:    Timestamp,
+                Timestamp_obj: Timestamp_obj
+            };
+        });
+
+        filteredData = originalData.slice();
+        populateFilters();
+        refreshDashboard();
+        hideLoading();
+
+    } catch (err) {
+        console.error("Error cargando hoja, usando DEMO_DATA:", err);
+        // fallback local si falla el fetch
+        loadLocalDataFallback();
+    }
+}
+
+// fallback en caso de error de permisos/red
+function loadLocalDataFallback() {
     originalData = DEMO_DATA.map(function(r){
         const Fecha_iso     = toISO(r.Fecha);
         const Cantidad_num  = toNumber(r.Cantidad);
@@ -1931,7 +2036,7 @@ function loadLocalData() {
           Turno:        r.Turno || "",
           Tipo:         r.Tipo || "",
           Nombre:       r.Nombre || "",
-          Quirofano:    normalizeQuirfano(r["Quirófano Nro"] || ""),
+          Quirofano:    normalizeQuirfano(r["Quirófano Nro"] || r["Quir\u00fano Nro"] || ""),
           Nombre_kit:   r.Nombre_kit || "",
           Cantidad:     r.Cantidad || "",
           Cantidad_num: Cantidad_num,
@@ -1943,10 +2048,8 @@ function loadLocalData() {
     });
 
     filteredData = originalData.slice();
-
     populateFilters();
     refreshDashboard();
-
     hideLoading();
 }
 
@@ -1956,7 +2059,6 @@ function loadLocalData() {
 
 async function doLogin(username, password) {
   showLoading();
-  // no hay red ni fetch, se valida localmente
   try {
     const expected = AUTH_MAP[username];
     if (!expected || expected !== password) {
@@ -1971,7 +2073,8 @@ async function doLogin(username, password) {
     document.getElementById("activeUser").textContent = currentUser;
     showDashboardScreen();
 
-    loadLocalData();
+    // después del login cargamos datos reales
+    loadSheetData();
 
   } catch (err) {
     hideLoading();
@@ -2045,7 +2148,7 @@ document.addEventListener("DOMContentLoaded", function(){
     currentToken = SESSION_TOKEN || "";
     document.getElementById("activeUser").textContent = currentUser;
     showDashboardScreen();
-    loadLocalData();
+    loadSheetData(); // login automático -> también cargar datos
   } else {
     showLoginScreen();
   }

@@ -243,11 +243,11 @@
         <form id="loginForm">
             <div class="mb-3">
                 <label for="usuario" class="form-label">Usuario</label>
-                <input type="text" class="form-control" id="usuario" required autocomplete="username">
+                <input type="text" class="form-control" id="usuario" required>
             </div>
             <div class="mb-3">
                 <label for="codigo" class="form-label">Código de acceso</label>
-                <input type="password" class="form-control" id="codigo" required autocomplete="current-password">
+                <input type="password" class="form-control" id="codigo" required>
             </div>
             <button type="submit" class="btn btn-primary w-100">
                 Acceder
@@ -710,21 +710,133 @@
 
 <script>
 // ======================================================================
-// CONFIGURACIÓN DEL FRONTEND ESTÁTICO
+// Autenticación local
 // ======================================================================
 
-// URL del Web App de Google Apps Script desplegado con doPost/doGet
-// Debe terminar en /exec
-const BACKEND_URL = "https://script.googleusercontent.com/macros/echo/XXXXXXXXXXXX/exec"; // <-- reemplazar por tu URL real
+// Mapa de credenciales válidas
+const AUTH_MAP = {
+  "dbmeza":  "3704196",
+  "clawes":  "524307",
+  "memarti": "4187108"
+};
 
-// Estado de sesión en el cliente
-let currentUser = null;
-let currentToken = null;
+// Estado de sesión inicial
+const AUTH_OK_INIT  = false;
+const SESSION_TOKEN = "";
+const INITIAL_USER  = "";
 
-// Datos
+// ======================================================================
+// Estado global en el cliente
+// ======================================================================
 let originalData = [];
 let filteredData = [];
 let charts = {};
+let currentUser = null;
+let currentToken = null;
+
+// ======================================================================
+// Datos simulados de quirófanos (reemplazar cuando se integre backend real)
+// ======================================================================
+const DEMO_DATA = [
+    {
+        Fecha: "2025-06-19",
+        Farmacia: "Qx1",
+        Turno: "Turno Mañana",
+        Tipo: "Anestesiólogo",
+        Nombre: "Cesar Emilio Britez Gomez",
+        "Quirófano Nro": "Q1",
+        Codigo_kit: "2057.0",
+        Nombre_kit: "FCIA QUI1 MALE9",
+        Cantidad: "1.0",
+        Observaciones: "",
+        Usuario: "Yanina_Coronel",
+        Timestamp: "2025-06-20 10:50:21.827000"
+    },
+    {
+        Fecha: "2025-06-19",
+        Farmacia: "Qx1",
+        Turno: "Turno Mañana",
+        Tipo: "Anestesiólogo",
+        Nombre: "Carlos Maria Baez Insfran",
+        "Quirófano Nro": "Q2",
+        Codigo_kit: "2035.0",
+        Nombre_kit: "FCIA QUI1 MALE8",
+        Cantidad: "1.0",
+        Observaciones: "",
+        Usuario: "Yanina_Coronel",
+        Timestamp: "2025-06-20 10:50:21.827000"
+    },
+    {
+        Fecha: "2025-06-19",
+        Farmacia: "Qx1",
+        Turno: "Turno Mañana",
+        Tipo: "Circulante",
+        Nombre: "LIBRADA VILLAGRA",
+        "Quirófano Nro": "Q1",
+        Codigo_kit: "2068.0",
+        Nombre_kit: "Fcia Q°1 KIQ6",
+        Cantidad: "1.0",
+        Observaciones: "",
+        Usuario: "Yanina_Coronel",
+        Timestamp: "2025-06-20 10:50:21.827000"
+    },
+    {
+        Fecha: "2025-06-23",
+        Farmacia: "Qx1",
+        Turno: "Turno Mañana",
+        Tipo: "Anestesiólogo",
+        Nombre: "Claudia Rebeca Ibarrola Recalde",
+        "Quirófano Nro": "Q3",
+        Codigo_kit: "2033.0",
+        Nombre_kit: "FCIA QUI1 MALE6",
+        Cantidad: "1.0",
+        Observaciones: "",
+        Usuario: "Yanina_Coronel",
+        Timestamp: "2025-06-23 11:54:02.307000"
+    },
+    {
+        Fecha: "2025-06-24",
+        Farmacia: "Qx1",
+        Turno: "Turno Tarde",
+        Tipo: "Anestesiólogo",
+        Nombre: "Chanisse Cheda Gamarra",
+        "Quirófano Nro": "Q4",
+        Codigo_kit: "2031.0",
+        Nombre_kit: "FCIA QUI1 MALE4",
+        Cantidad: "2.0",
+        Observaciones: "",
+        Usuario: "Yanina_Coronel",
+        Timestamp: "2025-06-24 17:55:34.008000"
+    },
+    {
+        Fecha: "2025-06-25",
+        Farmacia: "Qx2",
+        Turno: "Turno Mañana",
+        Tipo: "Anestesiólogo",
+        Nombre: "Miguel Jose Franco Figueredo",
+        "Quirófano Nro": "Q2",
+        Codigo_kit: "2029.0",
+        Nombre_kit: "Maletín 2 (3P)",
+        Cantidad: "4.0",
+        Observaciones: "",
+        Usuario: "Andrea_Riquelme",
+        Timestamp: "2025-06-26 11:53:26.278000"
+    },
+    {
+        Fecha: "2025-06-26",
+        Farmacia: "Qx2",
+        Turno: "Turno Tarde",
+        Tipo: "Anestesiólogo",
+        Nombre: "Miguel Jose Franco Figueredo",
+        "Quirófano Nro": "Q2",
+        Codigo_kit: "2029.0",
+        Nombre_kit: "Maletín 2 (3P)",
+        Cantidad: "3.0",
+        Observaciones: "SUSPENDIDAS= 2",
+        Usuario: "Andrea_Riquelme",
+        Timestamp: "2025-06-26 17:47:26.944000"
+    }
+];
 
 // ======================================================================
 // Utilidades de datos
@@ -732,9 +844,13 @@ let charts = {};
 
 function toISO(dateStr) {
   if (!dateStr) return null;
-  const m = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  const m = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (m) {
-    const dd = m[1], mm = m[2], yyyy = m[3];
+    return dateStr;
+  }
+  const m2 = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (m2) {
+    const dd = m2[1], mm = m2[2], yyyy = m2[3];
     return `${yyyy}-${mm}-${dd}`;
   }
   const dObj = new Date(dateStr);
@@ -790,6 +906,7 @@ function showDashboardScreen() {
   document.getElementById("loginScreen").style.display = "none";
   document.getElementById("dashboardScreen").style.display = "block";
 }
+
 function showLoginError(msg) {
   const e = document.getElementById("loginError");
   e.textContent = msg;
@@ -797,7 +914,7 @@ function showLoginError(msg) {
 }
 
 // ======================================================================
-// KPIs y métricas
+// KPIs y cálculos estadísticos
 // ======================================================================
 
 function calcKPIs(data) {
@@ -805,29 +922,35 @@ function calcKPIs(data) {
   const unidades = data.reduce((acc, r) => acc + (r.Cantidad_num || 0), 0);
   const farmSet = new Set(data.map(r => r.Farmacia));
   const nFarm   = farmSet.size;
-  const diasSet = new Set(data.map(r => r.Fecha_iso).filter(d => !!d));
+
+  const diasSet = new Set(
+    data.map(r => r.Fecha_iso).filter(d => !!d)
+  );
   const nDias   = diasSet.size || 1;
   const prom    = total / nDias;
+
   return { total, unidades, nFarm, prom };
 }
 
 function inferirEspecialidades(data) {
     const mapeoEspecialidades = {
-        'OFTALMOLOGIA': 'Oftalmología',
-        'UROLOGIA': 'Urología',
-        'COLONOSCOPIA': 'Gastroenterología',
-        'TRAUMATOLOGIA': 'Traumatología',
-        'NEURO': 'Neurocirugía',
-        'MALE': 'Anestesiología',
-        'KIQ': 'Cirugía General',
-        'BLOQUE': 'Bloques Quirúrgicos',
-        'MALETÍN': 'Equipos Móviles'
+        "OFTALMOLOGIA": "Oftalmología",
+        "UROLOGIA": "Urología",
+        "COLONOSCOPIA": "Gastroenterología",
+        "TRAUMATOLOGIA": "Traumatología",
+        "NEURO": "Neurocirugía",
+        "MALE": "Anestesiología",
+        "KIQ": "Cirugía General",
+        "BLOQUE": "Bloques Quirúrgicos",
+        "MALETÍN": "Equipos Móviles",
+        "MALETIN": "Equipos Móviles"
     };
+
     const especialidades = {};
     data.forEach(r => {
         if (r.Nombre_kit) {
             const kit = r.Nombre_kit.toUpperCase();
-            let especialidadDetectada = 'Otra';
+            let especialidadDetectada = "Otra";
             for (const [key, value] of Object.entries(mapeoEspecialidades)) {
                 if (kit.includes(key)) {
                     especialidadDetectada = value;
@@ -846,8 +969,11 @@ function calcKPIsEspecializados(data) {
     const unidades = data.reduce((acc, r) => acc + (r.Cantidad_num || 0), 0);
     const farmSet = new Set(data.map(r => r.Farmacia));
     const nFarm = farmSet.size;
+    
     const diasSet = new Set(data.map(r => r.Fecha_iso).filter(d => !!d));
     const nDias = diasSet.size || 1;
+    const prom = total / nDias;
+    
     const turnoCount = {};
     data.forEach(r => {
         if (r.Turno) {
@@ -855,26 +981,36 @@ function calcKPIsEspecializados(data) {
         }
     });
     const turnoMasActivo = Object.keys(turnoCount).length > 0 ?
-        Object.keys(turnoCount).reduce((a,b)=> turnoCount[a]>turnoCount[b]?a:b) : "-";
-
+        Object.keys(turnoCount).reduce((a, b) =>
+            turnoCount[a] > turnoCount[b] ? a : b
+        )
+        : "-";
+    
     const suspensiones = data.filter(r =>
         r.Observaciones && r.Observaciones.toLowerCase().includes("suspend")
     ).length;
-    const tasaSuspension = total > 0 ? (suspensiones / total * 100).toFixed(1) : 0;
-    const kitsPorProc = total > 0 ? (unidades / total).toFixed(1) : 0;
+    const tasaSuspension = total > 0 ? (suspensiones / total * 100).toFixed(1) : "0.0";
+    
+    const kitsPorProc = total > 0 ? (unidades / total).toFixed(1) : "0.0";
+    
     const especialidades = inferirEspecialidades(data);
     const especialidadPrincipal = Object.keys(especialidades).length > 0 ?
-        Object.keys(especialidades).reduce((a,b)=> especialidades[a]>especialidades[b]?a:b) : "-";
-    const quirfanos = [...new Set(data.map(r => r.Quirofano).filter(q => q))];
-    const eficiencia = quirfanos.length > 0 ?
-        (total / (quirfanos.length * (diasSet.size || 1))).toFixed(1) : 0;
+        Object.keys(especialidades).reduce((a, b) =>
+            especialidades[a] > especialidades[b] ? a : b
+        )
+        : "-";
+    
+    const quirfanosUnicos = [...new Set(data.map(r => r.Quirofano).filter(q => q))];
+    const eficiencia = quirfanosUnicos.length > 0 ?
+        (total / (quirfanosUnicos.length * nDias)).toFixed(1)
+        : "0.0";
 
-    return {
-        total,
-        unidades,
-        nFarm,
-        prom: total / (diasSet.size || 1),
-        turnoMasActivo,
+    return { 
+        total, 
+        unidades, 
+        nFarm, 
+        prom, 
+        turnoMasActivo, 
         tasaSuspension,
         kitsPorProc,
         especialidadPrincipal,
@@ -896,20 +1032,22 @@ function renderKPIsEspecializados(k) {
     document.getElementById("kpiTurnoActivo").textContent = k.turnoMasActivo;
     document.getElementById("kpiSuspension").textContent = k.tasaSuspension + "%";
     document.getElementById("kpiEspecialidad").textContent = k.especialidadPrincipal;
-
+    
     const eficienciaElem = document.getElementById("kpiEficiencia");
-    if (parseFloat(k.eficiencia) > 80) {
+    const tasaEfic = parseFloat(k.eficiencia);
+    if (tasaEfic > 80) {
         eficienciaElem.classList.add("kpi-success");
         eficienciaElem.classList.remove("kpi-warning");
-    } else if (parseFloat(k.eficiencia) < 60) {
+    } else if (tasaEfic < 60) {
         eficienciaElem.classList.add("kpi-warning");
         eficienciaElem.classList.remove("kpi-success");
     } else {
         eficienciaElem.classList.remove("kpi-success", "kpi-warning");
     }
-
+    
     const suspensionElem = document.getElementById("kpiSuspension");
-    if (parseFloat(k.tasaSuspension) > 10) {
+    const tasaSusp = parseFloat(k.tasaSuspension);
+    if (tasaSusp > 10) {
         suspensionElem.classList.add("kpi-warning");
     } else {
         suspensionElem.classList.remove("kpi-warning");
@@ -917,11 +1055,11 @@ function renderKPIsEspecializados(k) {
 }
 
 // ======================================================================
-// Gráficos (igual que tu versión actual)
+// Gráficos
 // ======================================================================
 
 function destroyCharts() {
-  Object.values(charts).forEach(ch => { if (ch) ch.destroy(); });
+  Object.values(charts).forEach(ch => { if (ch && ch.destroy) ch.destroy(); });
   charts = {};
 }
 
@@ -934,16 +1072,28 @@ function createChartDiaFarmacia() {
     if (!M[r.Fecha_iso][r.Farmacia]) M[r.Fecha_iso][r.Farmacia] = 0;
     M[r.Fecha_iso][r.Farmacia] += 1;
   });
+
   const fechas = Object.keys(M).sort();
-  const farmCodes = [...new Set(fechas.flatMap(F => Object.keys(M[F])) )].sort();
+  const farmCodes = [...new Set(
+    fechas.flatMap(F => Object.keys(M[F]))
+  )].sort();
+
   const labels = fechas.map(F => {
     const [y,m,d] = F.split("-");
     return d + "/" + m + "/" + y;
   });
+
   const datasets = farmCodes.map(code => {
     const serie = fechas.map(F => M[F][code] || 0);
-    return { label: code, data: serie, borderWidth: 2, tension: 0.2, fill: false };
+    return {
+      label: code,
+      data: serie,
+      borderWidth: 2,
+      tension: 0.2,
+      fill: false
+    };
   });
+
   charts.chartDiaFarmacia = new Chart(ctx, {
     type: "line",
     data: { labels, datasets },
@@ -955,7 +1105,7 @@ function createChartDiaFarmacia() {
         legend: { position: "bottom" },
         tooltip: {
           callbacks: {
-            label: c => `${c.dataset.label}: ${c.parsed.y} descargas`
+            label: function(c) { return c.dataset.label + ": " + c.parsed.y + " descargas"; }
           }
         }
       },
@@ -971,8 +1121,11 @@ function createTurnoChart() {
   const ctx = document.getElementById("turnoChart").getContext("2d");
   const turnoData = {};
   filteredData.forEach(r => {
-    if (r.Turno) turnoData[r.Turno] = (turnoData[r.Turno] || 0) + 1;
+    if (r.Turno) {
+      turnoData[r.Turno] = (turnoData[r.Turno] || 0) + 1;
+    }
   });
+
   charts.turnoChart = new Chart(ctx, {
     type: "doughnut",
     data: {
@@ -988,7 +1141,10 @@ function createTurnoChart() {
         ]
       }]
     },
-    options: { responsive: true, maintainAspectRatio: false }
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
+    }
   });
 }
 
@@ -996,8 +1152,11 @@ function createTipoChart() {
   const ctx = document.getElementById("tipoChart").getContext("2d");
   const tipoData = {};
   filteredData.forEach(r => {
-    if (r.Tipo) tipoData[r.Tipo] = (tipoData[r.Tipo] || 0) + 1;
+    if (r.Tipo) {
+      tipoData[r.Tipo] = (tipoData[r.Tipo] || 0) + 1;
+    }
   });
+
   charts.tipoChart = new Chart(ctx, {
     type: "pie",
     data: {
@@ -1010,24 +1169,36 @@ function createTipoChart() {
         ]
       }]
     },
-    options: { responsive: true, maintainAspectRatio: false }
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
+    }
   });
 }
 
 function createTopAnestesiologosChart() {
   const ctx = document.getElementById("topAnestesiologosChart").getContext("2d");
+
   const anestData = {};
-  filteredData.filter(r => r.Tipo === "Anestesiólogo").forEach(r => {
-    if (r.Nombre) anestData[r.Nombre] = (anestData[r.Nombre] || 0) + 1;
-  });
-  const top = Object.entries(anestData).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  filteredData
+    .filter(r => r.Tipo === "Anestesiólogo")
+    .forEach(r => {
+      if (r.Nombre) {
+        anestData[r.Nombre] = (anestData[r.Nombre] || 0) + 1;
+      }
+    });
+
+  const top = Object.entries(anestData)
+    .sort(function(a,b){ return b[1] - a[1]; })
+    .slice(0,10);
+
   charts.topAnestesiologosChart = new Chart(ctx, {
     type: "bar",
     data: {
-      labels: top.map(x => x[0]),
+      labels: top.map(function(x){ return x[0]; }),
       datasets: [{
         label: "Registros",
-        data: top.map(x => x[1]),
+        data: top.map(function(x){ return x[1]; }),
         backgroundColor: "rgba(54, 162, 235, 0.7)",
         borderColor:   "rgba(54, 162, 235, 1)",
         borderWidth: 1
@@ -1037,25 +1208,36 @@ function createTopAnestesiologosChart() {
       indexAxis: "y",
       responsive: true,
       maintainAspectRatio: false,
-      scales: { x: { beginAtZero: true } }
+      scales: {
+        x: { beginAtZero: true }
+      }
     }
   });
 }
 
 function createTopCirculantesChart() {
   const ctx = document.getElementById("topCirculantesChart").getContext("2d");
+
   const circData = {};
-  filteredData.filter(r => r.Tipo === "Circulante").forEach(r => {
-    if (r.Nombre) circData[r.Nombre] = (circData[r.Nombre] || 0) + 1;
-  });
-  const top = Object.entries(circData).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  filteredData
+    .filter(r => r.Tipo === "Circulante")
+    .forEach(r => {
+      if (r.Nombre) {
+        circData[r.Nombre] = (circData[r.Nombre] || 0) + 1;
+      }
+    });
+
+  const top = Object.entries(circData)
+    .sort(function(a,b){ return b[1] - a[1]; })
+    .slice(0,10);
+
   charts.topCirculantesChart = new Chart(ctx, {
     type: "bar",
     data: {
-      labels: top.map(x => x[0]),
+      labels: top.map(function(x){ return x[0]; }),
       datasets: [{
         label: "Registros",
-        data: top.map(x => x[1]),
+        data: top.map(function(x){ return x[1]; }),
         backgroundColor: "rgba(75, 192, 192, 0.7)",
         borderColor:   "rgba(75, 192, 192, 1)",
         borderWidth: 1
@@ -1065,7 +1247,9 @@ function createTopCirculantesChart() {
       indexAxis: "y",
       responsive: true,
       maintainAspectRatio: false,
-      scales: { x: { beginAtZero: true } }
+      scales: {
+        x: { beginAtZero: true }
+      }
     }
   });
 }
@@ -1076,12 +1260,18 @@ function createPersonalQuirfanoChart() {
   filteredData.forEach(r => {
     const q  = r.Quirofano || "Sin asignar";
     const tp = r.Tipo || "Sin tipo";
-    if (!M[q]) M[q] = { "Anestesiólogo":0, "Circulante":0 };
-    if (tp in M[q]) M[q][tp] += 1;
+    if (!M[q]) {
+      M[q] = { "Anestesiólogo":0, "Circulante":0 };
+    }
+    if (tp in M[q]) {
+      M[q][tp] += 1;
+    }
   });
+
   const quirfanos = Object.keys(M);
-  const anestArr  = quirfanos.map(q => M[q]["Anestesiólogo"]);
-  const circArr   = quirfanos.map(q => M[q]["Circulante"]);
+  const anestArr  = quirfanos.map(function(q){ return M[q]["Anestesiólogo"]; });
+  const circArr   = quirfanos.map(function(q){ return M[q]["Circulante"]; });
+
   charts.personalQuirfanoChart = new Chart(ctx, {
     type: "bar",
     data: {
@@ -1091,14 +1281,14 @@ function createPersonalQuirfanoChart() {
           label: "Anestesiólogos",
           data: anestArr,
           backgroundColor: "rgba(153, 102, 255, 0.7)",
-          borderColor: "rgba(153, 102, 255, 1)",
+          borderColor:     "rgba(153, 102, 255, 1)",
           borderWidth: 1
         },
         {
           label: "Circulantes",
           data: circArr,
           backgroundColor: "rgba(255, 159, 64, 0.7)",
-          borderColor: "rgba(255, 159, 64, 1)",
+          borderColor:     "rgba(255, 159, 64, 1)",
           borderWidth: 1
         }
       ]
@@ -1106,7 +1296,9 @@ function createPersonalQuirfanoChart() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      scales: { y: { beginAtZero: true } }
+      scales: {
+        y: { beginAtZero: true }
+      }
     }
   });
 }
@@ -1120,14 +1312,18 @@ function createTopKitsChart() {
       kitsData[kit] = (kitsData[kit] || 0) + (r.Cantidad_num || 0);
     }
   });
-  const top = Object.entries(kitsData).sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+  const top = Object.entries(kitsData)
+    .sort(function(a,b){ return b[1]-a[1]; })
+    .slice(0,10);
+
   charts.topKitsChart = new Chart(ctx, {
     type: "bar",
     data: {
-      labels: top.map(x => x[0]),
+      labels: top.map(function(x){ return x[0]; }),
       datasets: [{
         label: "Cantidad",
-        data: top.map(x => x[1]),
+        data: top.map(function(x){ return x[1]; }),
         backgroundColor: "rgba(255, 99, 132, 0.7)",
         borderColor:   "rgba(255, 99, 132, 1)",
         borderWidth: 1
@@ -1137,7 +1333,9 @@ function createTopKitsChart() {
       indexAxis:"y",
       responsive:true,
       maintainAspectRatio:false,
-      scales: { x: { beginAtZero:true } }
+      scales: {
+        x: { beginAtZero:true }
+      }
     }
   });
 }
@@ -1149,6 +1347,7 @@ function createKitsCantidadChart() {
     const tp = r.Tipo || "Sin tipo";
     sumTipo[tp] = (sumTipo[tp] || 0) + (r.Cantidad_num || 0);
   });
+
   charts.kitsCantidadChart = new Chart(ctx, {
     type:"doughnut",
     data:{
@@ -1161,7 +1360,10 @@ function createKitsCantidadChart() {
         ]
       }]
     },
-    options:{ responsive:true, maintainAspectRatio:false }
+    options:{
+      responsive:true,
+      maintainAspectRatio:false
+    }
   });
 }
 
@@ -1172,14 +1374,15 @@ function createKitsQuirfanoChart() {
     const q = r.Quirofano || "Sin asignar";
     sumQ[q] = (sumQ[q] || 0) + (r.Cantidad_num || 0);
   });
-  const sortedQ = Object.entries(sumQ).sort((a,b)=>b[1]-a[1]);
+
+  const sortedQ = Object.entries(sumQ).sort(function(a,b){ return b[1]-a[1]; });
   charts.kitsQuirfanoChart = new Chart(ctx, {
     type:"bar",
     data:{
-      labels:sortedQ.map(x=>x[0]),
+      labels:sortedQ.map(function(x){ return x[0]; }),
       datasets:[{
         label:"Cantidad de Kits",
-        data:sortedQ.map(x=>x[1]),
+        data:sortedQ.map(function(x){ return x[1]; }),
         backgroundColor:"rgba(75, 192, 192, 0.7)",
         borderColor:"rgba(75, 192, 192, 1)",
         borderWidth:1
@@ -1188,13 +1391,17 @@ function createKitsQuirfanoChart() {
     options:{
       responsive:true,
       maintainAspectRatio:false,
-      scales:{ y:{ beginAtZero:true } }
+      scales:{
+        y:{ beginAtZero:true }
+      }
     }
   });
 }
 
+// Eficiencia operativa
+
 function createRotacionQuirfanosChart() {
-    const ctx = document.getElementById('rotacionQuirfanosChart').getContext('2d');
+    const ctx = document.getElementById("rotacionQuirfanosChart").getContext("2d");
     const rotacion = {};
     filteredData.forEach(r => {
         if (r.Quirofano && r.Fecha_iso) {
@@ -1204,20 +1411,22 @@ function createRotacionQuirfanosChart() {
             rotacion[key].dias.add(r.Fecha_iso);
         }
     });
+
     const labels = Object.keys(rotacion).sort();
-    const data = labels.map(q => {
+    const dataVals = labels.map(q => {
         const dias = rotacion[q].dias.size;
         return dias > 0 ? (rotacion[q].total / dias).toFixed(1) : 0;
     });
+
     charts.rotacionQuirfanosChart = new Chart(ctx, {
-        type: 'bar',
+        type: "bar",
         data: {
             labels: labels,
             datasets: [{
-                label: 'Procedimientos/día',
-                data: data,
-                backgroundColor: 'rgba(54, 162, 235, 0.7)',
-                borderColor: 'rgba(54, 162, 235, 1)',
+                label: "Procedimientos/día",
+                data: dataVals,
+                backgroundColor: "rgba(54, 162, 235, 0.7)",
+                borderColor: "rgba(54, 162, 235, 1)",
                 borderWidth: 1
             }]
         },
@@ -1225,15 +1434,20 @@ function createRotacionQuirfanosChart() {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                y: { beginAtZero: true, title: { display: true, text: 'Procedimientos por día' } },
-                x: { title: { display: true, text: 'Quirófano' } }
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: "Procedimientos por día" }
+                },
+                x: {
+                    title: { display: true, text: "Quirófano" }
+                }
             }
         }
     });
 }
 
 function createEficienciaPersonalChart() {
-    const ctx = document.getElementById('eficienciaPersonalChart').getContext('2d');
+    const ctx = document.getElementById("eficienciaPersonalChart").getContext("2d");
     const eficiencia = {};
     filteredData.forEach(r => {
         if (r.Nombre && r.Fecha_iso) {
@@ -1242,48 +1456,64 @@ function createEficienciaPersonalChart() {
             eficiencia[r.Nombre].dias.add(r.Fecha_iso);
         }
     });
-    const eficienciaArray = Object.entries(eficiencia).map(([nombre, datos]) => {
+
+    const eficienciaArray = Object.entries(eficiencia).map(function(pair) {
+        const nombre = pair[0];
+        const datos = pair[1];
         const dias = datos.dias.size;
-        return { nombre: nombre, eficiencia: dias > 0 ? (datos.total / dias).toFixed(1) : 0 };
+        return {
+            nombre: nombre,
+            eficiencia: dias > 0 ? (datos.total / dias).toFixed(1) : 0,
+            total: datos.total
+        };
     });
-    const topEficiencia = eficienciaArray.sort((a,b)=>b.eficiencia-a.eficiencia).slice(0,15);
+
+    const topEficiencia = eficienciaArray
+        .sort(function(a,b){ return b.eficiencia - a.eficiencia; })
+        .slice(0, 15);
+
     charts.eficienciaPersonalChart = new Chart(ctx, {
-        type: 'bar',
+        type: "bar",
         data: {
-            labels: topEficiencia.map(d => d.nombre),
+            labels: topEficiencia.map(function(d){ return d.nombre; }),
             datasets: [{
-                label: 'Procedimientos/día',
-                data: topEficiencia.map(d => d.eficiencia),
-                backgroundColor: 'rgba(75, 192, 192, 0.7)',
-                borderColor: 'rgba(75, 192, 192, 1)',
+                label: "Procedimientos/día",
+                data: topEficiencia.map(function(d){ return d.eficiencia; }),
+                backgroundColor: "rgba(75, 192, 192, 0.7)",
+                borderColor: "rgba(75, 192, 192, 1)",
                 borderWidth: 1
             }]
         },
         options: {
-            indexAxis: 'y',
+            indexAxis: "y",
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                x: { beginAtZero: true, title: { display: true, text: 'Procedimientos por día trabajado' } }
+                x: {
+                    beginAtZero: true,
+                    title: { display: true, text: "Procedimientos por día trabajado" }
+                }
             }
         }
     });
 }
 
 function createPatronesConsumoChart() {
-    const ctx = document.getElementById('patronesConsumoChart').getContext('2d');
+    const ctx = document.getElementById("patronesConsumoChart").getContext("2d");
     const especialidades = inferirEspecialidades(filteredData);
+
     const labels = Object.keys(especialidades);
-    const data = Object.values(especialidades);
+    const dataVals = Object.values(especialidades);
+
     charts.patronesConsumoChart = new Chart(ctx, {
-        type: 'bar',
+        type: "bar",
         data: {
             labels: labels,
             datasets: [{
-                label: 'Consumo por especialidad',
-                data: data,
-                backgroundColor: 'rgba(153, 102, 255, 0.7)',
-                borderColor: 'rgba(153, 102, 255, 1)',
+                label: "Consumo por especialidad",
+                data: dataVals,
+                backgroundColor: "rgba(153, 102, 255, 0.7)",
+                borderColor: "rgba(153, 102, 255, 1)",
                 borderWidth: 1
             }]
         },
@@ -1291,14 +1521,19 @@ function createPatronesConsumoChart() {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                y: { beginAtZero: true, title: { display: true, text: 'Unidades consumidas' } }
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: "Unidades consumidas" }
+                }
             }
         }
     });
 }
 
+// Stock
+
 function createCurvaABCChart() {
-    const ctx = document.getElementById('curvaABCChart').getContext('2d');
+    const ctx = document.getElementById("curvaABCChart").getContext("2d");
     const consumoKits = {};
     filteredData.forEach(r => {
         if (r.Nombre_kit && r.Nombre_kit !== "") {
@@ -1306,34 +1541,45 @@ function createCurvaABCChart() {
             consumoKits[kit] = (consumoKits[kit] || 0) + (r.Cantidad_num || 0);
         }
     });
-    const sorted = Object.entries(consumoKits).sort((a,b)=>b[1]-a[1]);
-    const total = sorted.reduce((sum, item) => sum + item[1], 0);
+
+    const sorted = Object.entries(consumoKits)
+        .sort(function(a, b){ return b[1] - a[1]; });
+
+    const total = sorted.reduce(function(sum, item){ return sum + item[1]; }, 0);
     let acumulado = 0;
-    const dataABC = sorted.map(item => {
+    const dataABC = sorted.map(function(item) {
         acumulado += item[1];
+        const ratioAcum = acumulado / total;
         return {
             kit: item[0],
             consumo: item[1],
-            categoria: (acumulado/total <= 0.8) ? 'A' :
-                       (acumulado/total <= 0.95) ? 'B' : 'C'
+            categoria: ratioAcum <= 0.8 ? "A" :
+                       ratioAcum <= 0.95 ? "B" : "C"
         };
     });
-    const labels = dataABC.map(d => d.kit.length>20 ? d.kit.substring(0,20)+'...' : d.kit);
-    const data = dataABC.map(d => d.consumo);
-    const backgroundColors = dataABC.map(d =>
-        d.categoria === 'A' ? 'rgba(255, 99, 132, 0.7)' :
-        d.categoria === 'B' ? 'rgba(255, 159, 64, 0.7)' :
-                              'rgba(75, 192, 192, 0.7)'
-    );
+
+    const labels = dataABC.map(function(d){
+        return d.kit.length > 20 ? d.kit.substring(0,20) + "..." : d.kit;
+    });
+    const dataVals = dataABC.map(function(d){ return d.consumo; });
+    const backgroundColors = dataABC.map(function(d){
+        if (d.categoria === "A") return "rgba(255, 99, 132, 0.7)";
+        if (d.categoria === "B") return "rgba(255, 159, 64, 0.7)";
+        return "rgba(75, 192, 192, 0.7)";
+    });
+    const borderColors = backgroundColors.map(function(c){
+        return c.replace("0.7","1");
+    });
+
     charts.curvaABCChart = new Chart(ctx, {
-        type: 'bar',
+        type: "bar",
         data: {
             labels: labels,
             datasets: [{
-                label: 'Consumo',
-                data: data,
+                label: "Consumo",
+                data: dataVals,
                 backgroundColor: backgroundColors,
-                borderColor: backgroundColors.map(c => c.replace('0.7', '1')),
+                borderColor: borderColors,
                 borderWidth: 1
             }]
         },
@@ -1341,14 +1587,18 @@ function createCurvaABCChart() {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                y: { beginAtZero: true, title: { display: true, text: 'Unidades consumidas' } }
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: "Unidades consumidas" }
+                }
             }
         }
     });
 }
 
 function createPrevisionConsumoChart() {
-    const ctx = document.getElementById('previsionConsumoChart').getContext('2d');
+    const ctx = document.getElementById("previsionConsumoChart").getContext("2d");
+
     const consumoMensual = {};
     filteredData.forEach(r => {
         if (r.Fecha_iso) {
@@ -1356,52 +1606,61 @@ function createPrevisionConsumoChart() {
             consumoMensual[mes] = (consumoMensual[mes] || 0) + (r.Cantidad_num || 0);
         }
     });
+
     const meses = Object.keys(consumoMensual).sort();
-    const consumos = meses.map(mes => consumoMensual[mes]);
+    const consumos = meses.map(function(mes){ return consumoMensual[mes]; });
 
     const ultimosMeses = meses.slice(-6);
     const ultimosConsumos = consumos.slice(-6);
 
     const n = ultimosConsumos.length;
     let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
-    ultimosConsumos.forEach((y, i) => {
-        sumX += i;
+    ultimosConsumos.forEach(function(y, i){
+        const x = i;
+        sumX += x;
         sumY += y;
-        sumXY += i * y;
-        sumX2 += i * i;
+        sumXY += x * y;
+        sumX2 += x * x;
     });
 
-    const pendiente = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
-    const intercepto = (sumY - pendiente * sumX) / n;
+    let pendiente = 0;
+    let intercepto = 0;
+    if (n > 1) {
+        pendiente = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+        intercepto = (sumY - pendiente * sumX) / n;
+    } else if (n === 1) {
+        pendiente = 0;
+        intercepto = ultimosConsumos[0];
+    }
 
     const mesesProyeccion = [];
     const consumosProyeccion = [];
     for (let i = 0; i < 3; i++) {
-        const xFuture = n + i;
-        const proy = intercepto + pendiente * xFuture;
-        mesesProyeccion.push(`Proy ${i+1}`);
+        const nextIndex = n + i;
+        const proy = intercepto + pendiente * nextIndex;
+        mesesProyeccion.push("Proy " + (i+1));
         consumosProyeccion.push(Math.max(0, Math.round(proy)));
     }
 
     charts.previsionConsumoChart = new Chart(ctx, {
-        type: 'line',
+        type: "line",
         data: {
-            labels: [...ultimosMeses, ...mesesProyeccion],
+            labels: ultimosMeses.concat(mesesProyeccion),
             datasets: [
                 {
-                    label: 'Consumo Real',
-                    data: [...ultimosConsumos, ...Array(3).fill(null)],
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    label: "Consumo Real",
+                    data: ultimosConsumos.concat([null,null,null]),
+                    borderColor: "rgba(54, 162, 235, 1)",
+                    backgroundColor: "rgba(54, 162, 235, 0.1)",
                     borderWidth: 2,
                     tension: 0.3,
                     fill: false
                 },
                 {
-                    label: 'Proyección',
-                    data: [...Array(ultimosConsumos.length).fill(null), ...consumosProyeccion],
-                    borderColor: 'rgba(255, 99, 132, 1)',
-                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                    label: "Proyección",
+                    data: Array(ultimosConsumos.length).fill(null).concat(consumosProyeccion),
+                    borderColor: "rgba(255, 99, 132, 1)",
+                    backgroundColor: "rgba(255, 99, 132, 0.1)",
                     borderWidth: 2,
                     borderDash: [5, 5],
                     tension: 0.3,
@@ -1413,47 +1672,80 @@ function createPrevisionConsumoChart() {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                y: { beginAtZero: true, title: { display: true, text: 'Unidades consumidas' } }
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: "Unidades consumidas" }
+                }
             }
         }
     });
 }
 
 function createEstacionalidadChart() {
-    const ctx = document.getElementById('estacionalidadChart').getContext('2d');
-    const diasSemana = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const ctx = document.getElementById("estacionalidadChart").getContext("2d");
+    const diasSemana = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
     const estacionalidad = {};
+
     filteredData.forEach(r => {
         if (r.Fecha_iso && r.Turno) {
-            const fecha = new Date(r.Fecha_iso);
-            const diaSemana = diasSemana[fecha.getDay()];
-            const key = diaSemana + " - " + r.Turno;
-            estacionalidad[key] = (estacionalidad[key] || 0) + (r.Cantidad_num || 0);
+            const fechaObj = new Date(r.Fecha_iso + "T00:00:00");
+            if (!isNaN(fechaObj.getTime())) {
+                const diaSemana = diasSemana[fechaObj.getDay()];
+                const turno = r.Turno;
+                const key = diaSemana + " - " + turno;
+                estacionalidad[key] = (estacionalidad[key] || 0) + (r.Cantidad_num || 0);
+            }
         }
     });
-    const diasOrdenados = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
-    const turnos = [...new Set(Object.keys(estacionalidad).map(k => k.split(' - ')[1]))];
-    const datasets = turnos.map(turno => {
-        const data = diasOrdenados.map(dia => {
+
+    const diasOrdenados = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
+    const turnosUnicos = [];
+    Object.keys(estacionalidad).forEach(function(k){
+        const turno = k.split(" - ")[1];
+        if (!turnosUnicos.includes(turno)) {
+            turnosUnicos.push(turno);
+        }
+    });
+
+    const datasets = turnosUnicos.map(function(turno){
+        const dataVals = diasOrdenados.map(function(dia){
             const key = dia + " - " + turno;
             return estacionalidad[key] || 0;
         });
-        const bg = turno.includes('Mañana') ? 'rgba(255, 206, 86, 0.7)' :
-                   turno.includes('Tarde')  ? 'rgba(54, 162, 235, 0.7)' :
-                   turno.includes('Noche')  ? 'rgba(153, 102, 255, 0.7)' :
-                                               'rgba(201, 203, 207, 0.7)';
-        const bd = bg.replace('0.7','1');
-        return { label: turno, data: data, backgroundColor: bg, borderColor: bd, borderWidth: 1 };
+        let bg;
+        if (turno.indexOf("Mañana") !== -1) {
+            bg = "rgba(255, 206, 86, 0.7)";
+        } else if (turno.indexOf("Tarde") !== -1) {
+            bg = "rgba(54, 162, 235, 0.7)";
+        } else if (turno.indexOf("Noche") !== -1) {
+            bg = "rgba(153, 102, 255, 0.7)";
+        } else {
+            bg = "rgba(201, 203, 207, 0.7)";
+        }
+        return {
+            label: turno,
+            data: dataVals,
+            backgroundColor: bg
+        };
     });
+
     charts.estacionalidadChart = new Chart(ctx, {
-        type: 'bar',
-        data: { labels: diasOrdenados, datasets: datasets },
+        type: "bar",
+        data: {
+            labels: diasOrdenados,
+            datasets: datasets
+        },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                y: { beginAtZero: true, title: { display: true, text: 'Unidades consumidas' } },
-                x: { title: { display: true, text: 'Día de la semana' } }
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: "Unidades consumidas" }
+                },
+                x: {
+                    title: { display: true, text: "Día de la semana" }
+                }
             }
         }
     });
@@ -1466,9 +1758,11 @@ function createEstacionalidadChart() {
 function updateDataTable() {
   const tb = document.getElementById("dataTableBody");
   tb.innerHTML = "";
-  const sorted = [...filteredData].sort((a,b)=>{
+
+  const sorted = filteredData.slice().sort(function(a,b){
     return (b.Timestamp_obj||0) - (a.Timestamp_obj||0);
   });
+
   const top100 = sorted.slice(0,100);
   top100.forEach(r => {
     const tr = document.createElement("tr");
@@ -1484,10 +1778,12 @@ function updateDataTable() {
       r.Usuario,
       r.Timestamp
     ];
-    cols.forEach((val, idx)=>{
+    cols.forEach(function(val, idx){
       const td = document.createElement("td");
       td.textContent = val || "";
-      if (idx === 7) { td.style.textAlign = "right"; }
+      if (idx === 7) {
+        td.style.textAlign = "right";
+      }
       tr.appendChild(td);
     });
     tb.appendChild(tr);
@@ -1503,8 +1799,13 @@ function populateFilters() {
   while (sel.options.length > 1) {
     sel.remove(1);
   }
-  const farms = [...new Set(originalData.map(r => r.Farmacia).filter(f=>f))];
-  farms.sort().forEach(f => {
+  const farms = [];
+  originalData.forEach(function(r){
+    if (r.Farmacia && farms.indexOf(r.Farmacia) === -1) {
+        farms.push(r.Farmacia);
+    }
+  });
+  farms.sort().forEach(function(f){
     const opt = document.createElement("option");
     opt.value = f;
     opt.textContent = f;
@@ -1517,7 +1818,7 @@ function applyFilters() {
   const fh = document.getElementById("filtroHasta").value || null;
   const ff = document.getElementById("filtroFarmacia").value || "__ALL__";
 
-  filteredData = originalData.filter(r => {
+  filteredData = originalData.filter(function(r){
     if (ff !== "__ALL__" && r.Farmacia !== ff) return false;
     if (fd && r.Fecha_iso && r.Fecha_iso < fd) return false;
     if (fh && r.Fecha_iso && r.Fecha_iso > fh) return false;
@@ -1532,12 +1833,12 @@ function resetFilters() {
   document.getElementById("filtroHasta").value    = "";
   document.getElementById("filtroFarmacia").value = "__ALL__";
 
-  filteredData = [...originalData];
+  filteredData = originalData.slice();
   refreshDashboard();
 }
 
 // ======================================================================
-// Exportar
+// Exportar datos filtrados
 // ======================================================================
 
 function exportData() {
@@ -1548,10 +1849,10 @@ function exportData() {
   const headers = Object.keys(filteredData[0]);
   const csvLines = [];
   csvLines.push(headers.join(","));
-  filteredData.forEach(row => {
-    const line = headers.map(h => {
+  filteredData.forEach(function(row){
+    const line = headers.map(function(h){
       const v = row[h] == null ? "" : String(row[h]);
-      return `"${v.replace(/"/g,'""')}"`;
+      return "\"" + v.replace(/"/g,'""') + "\"";
     }).join(",");
     csvLines.push(line);
   });
@@ -1573,14 +1874,25 @@ function exportData() {
 function checkDataQuality(data) {
     const total = data.length;
     if (total === 0) return null;
+    
     const issues = [];
-    const sinQuirofano = data.filter(r => !r.Quirofano || r.Quirofano === "").length;
+    const sinQuirofano = data.filter(function(r){
+        return !r.Quirofano || r.Quirofano === "";
+    }).length;
     if (sinQuirofano > 0) {
-        issues.push(`${sinQuirofano} registros sin quirófano asignado (${(sinQuirofano/total*100).toFixed(1)}%)`);
+        issues.push(
+            sinQuirofano + " registros sin quirófano asignado (" +
+            (sinQuirofano/total*100).toFixed(1) + "%)"
+        );
     }
-    const sinKit = data.filter(r => !r.Nombre_kit || r.Nombre_kit === "").length;
+    const sinKit = data.filter(function(r){
+        return !r.Nombre_kit || r.Nombre_kit === "";
+    }).length;
     if (sinKit > 0) {
-        issues.push(`${sinKit} registros sin kit asignado (${(sinKit/total*100).toFixed(1)}%)`);
+        issues.push(
+            sinKit + " registros sin kit asignado (" +
+            (sinKit/total*100).toFixed(1) + "%)"
+        );
     }
     return issues.length > 0 ? issues : null;
 }
@@ -1588,8 +1900,11 @@ function checkDataQuality(data) {
 function mostrarAlertasCalidad(issues) {
     const alertDiv = document.getElementById("dataQualityAlert");
     const messageDiv = document.getElementById("dataQualityMessage");
+    
     if (issues && issues.length > 0) {
-        messageDiv.innerHTML = "<strong>Se detectaron las siguientes situaciones:</strong><br>" + issues.join("<br>");
+        messageDiv.innerHTML =
+            "<strong>Se detectaron las siguientes situaciones:</strong><br>" +
+            issues.join("<br>");
         alertDiv.style.display = "block";
     } else {
         alertDiv.style.display = "none";
@@ -1597,72 +1912,17 @@ function mostrarAlertasCalidad(issues) {
 }
 
 // ======================================================================
-// Backend interacciones vía fetch (CORS permitido requerido)
+// Carga de datos local (sin backend)
 // ======================================================================
 
-// LOGIN
-async function doLogin(username, password) {
-  showLoading();
-  try {
-    const resp = await fetch(BACKEND_URL + "?action=login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        usuario: dbmeza,
-        codigo:  3704196
-      })
-    });
-    const js = await resp.json();
-    hideLoading();
+function loadLocalData() {
+    showLoading();
 
-    if (js.status !== "OK") {
-      showLoginError(js.message || "Credenciales inválidas");
-      return;
-    }
+    originalData = DEMO_DATA.map(function(r){
+        const Fecha_iso     = toISO(r.Fecha);
+        const Cantidad_num  = toNumber(r.Cantidad);
+        const Timestamp_obj = parseTS(r.Timestamp);
 
-    currentUser  = js.user;
-    currentToken = js.token;
-
-    document.getElementById("activeUser").textContent = currentUser;
-    showDashboardScreen();
-
-    // cargar datos reales
-    loadDataFromServer();
-
-  } catch (err) {
-    hideLoading();
-    showLoginError("Error de red o CORS");
-  }
-}
-
-// GET DATA
-async function loadDataFromServer() {
-  showLoading();
-  try {
-    const resp = await fetch(BACKEND_URL + "?action=getData", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        token: currentToken
-      })
-    });
-    const js = await resp.json();
-
-    hideLoading();
-
-    if (js.status !== "OK") {
-        alert("Error al obtener datos: " + (js.message || "desconocido"));
-        currentUser  = null;
-        currentToken = null;
-        showLoginScreen();
-        return;
-    }
-
-    // js.data: [{Fecha, Farmacia, ...}]
-    originalData = js.data.map(r => {
-        const Fecha_iso     = toISO(r.Fecha || "");
-        const Cantidad_num  = toNumber(r.Cantidad || "");
-        const Timestamp_obj = parseTS(r.Timestamp || "");
         return {
           Fecha:        r.Fecha || "",
           Fecha_iso:    Fecha_iso,
@@ -1681,20 +1941,44 @@ async function loadDataFromServer() {
         };
     });
 
-    filteredData = [...originalData];
+    filteredData = originalData.slice();
+
     populateFilters();
     refreshDashboard();
 
+    hideLoading();
+}
+
+// ======================================================================
+// Login local
+// ======================================================================
+
+async function doLogin(username, password) {
+  showLoading();
+  // no hay red ni fetch, se valida localmente
+  try {
+    const expected = AUTH_MAP[username];
+    if (!expected || expected !== password) {
+        hideLoading();
+        showLoginError("Credenciales inválidas");
+        return;
+    }
+
+    currentUser  = username;
+    currentToken = "token_local_" + Date.now();
+
+    document.getElementById("activeUser").textContent = currentUser;
+    showDashboardScreen();
+
+    loadLocalData();
+
   } catch (err) {
     hideLoading();
-    alert("Fallo de red o CORS");
-    currentUser  = null;
-    currentToken = null;
-    showLoginScreen();
+    showLoginError("Fallo interno");
   }
 }
 
-// LOGOUT
+// Cerrar sesión
 function doLogout() {
   currentUser  = null;
   currentToken = null;
@@ -1736,10 +2020,11 @@ function refreshDashboard() {
 }
 
 // ======================================================================
-// Init
+// Init al cargar DOM
 // ======================================================================
 
 document.addEventListener("DOMContentLoaded", function(){
+
   document.getElementById("loginForm").addEventListener("submit", function(ev){
     ev.preventDefault();
     const u = document.getElementById("usuario").value.trim().toLowerCase();
@@ -1754,9 +2039,15 @@ document.addEventListener("DOMContentLoaded", function(){
   document.getElementById("exportData").addEventListener("click", exportData);
   document.getElementById("logoutBtn").addEventListener("click", doLogout);
 
-  // Al estar en GitHub Pages no tenemos sesión previa integrada,
-  // así que siempre mostramos la pantalla de login al cargar.
-  showLoginScreen();
+  if (AUTH_OK_INIT && SESSION_TOKEN) {
+    currentUser  = INITIAL_USER || "";
+    currentToken = SESSION_TOKEN || "";
+    document.getElementById("activeUser").textContent = currentUser;
+    showDashboardScreen();
+    loadLocalData();
+  } else {
+    showLoginScreen();
+  }
 });
 </script>
 

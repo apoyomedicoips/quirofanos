@@ -1608,8 +1608,8 @@ async function doLogin(username, password) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        usuario: username,
-        codigo:  password
+        usuario: dbmeza,
+        codigo:  3704196
       })
     });
     const js = await resp.json();
